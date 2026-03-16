@@ -49,28 +49,23 @@ SUPABASE_KEY=슈파베이스_KEY
 
 ---
 
-## ☁️ Discloud 업로드 방법
+## ☁️ Render 배포 방법
 
-1. 프로젝트 폴더 내의 모든 파일을 선택합니다. ( 단, `node_modules` 폴더는 **제외**하세요! )
-2. ZIP 파일로 압축합니다.
-3. [Discloud Dashboard](https://discloudbot.com/dashboard)에 접속합니다.
-4. **Add App**을 누르고 생성한 ZIP 파일을 업로드합니다.
-5. 업로드가 완료되면 자동으로 실행됩니다.
-
----
-
-## 📦 ZIP 압축 전 체크리스트
-- [ ] `node_modules` 폴더가 포함되지 않았는가?
-- [ ] `package.json`이 존재하는가?
-- [ ] `discloud.config`가 존재하는가?
-- [ ] `.env` 파일이 포함되었는가? (Discloud는 `.env` 파일을 함께 업로드해야 인식합니다)
-- [ ] `index.js`가 존재하는가?
+1. 코드를 본인의 **GitHub 저장소**에 올립니다.
+2. [Render Dashboard](https://dashboard.render.com)에서 **New -> Web Service**를 선택합니다.
+3. GitHub 저장소를 연결합니다.
+4. **Environment Settings**에서 다음 변수들을 추가합니다:
+   - `DISCORD_BOT_TOKEN`
+   - `SUPABASE_URL`
+   - `SUPABASE_KEY`
+5. **Build Command**: `npm install`
+6. **Start Command**: `node index.js`
 
 ---
 
-## 🔍 실행 후 로그 확인
-1. Discloud Dashboard의 본인 앱 클릭
-2. **Logs** 탭에서 실시간 로그 확인
+## 🔍 실행 확인
+1. Render 대시보드의 **Logs** 탭을 확인합니다.
+2. `✅ Server is running on port...` 메시지를 확인합니다.
 3. `✅ Logged in as DJ봇#1234` 메시지가 뜨면 성공!
 
 ---
