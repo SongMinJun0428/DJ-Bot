@@ -31,6 +31,13 @@ client.commands.set(setupCommand.name, setupCommand);
 // Global Music Manager
 const musicManager = new MusicManager(client);
 
+// Check Environment Variables
+if (!process.env.DISCORD_BOT_TOKEN) {
+    console.error('❌ DISCORD_BOT_TOKEN is missing!');
+} else {
+    console.log('✅ DISCORD_BOT_TOKEN is present');
+}
+
 client.once(Events.ClientReady, async () => {
     console.log(`✅ Logged in as ${client.user.tag}`);
 
@@ -68,81 +75,97 @@ client.once(Events.ClientReady, async () => {
         await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
         console.log('Successfully reloaded application (/) commands.');
     } catch (error) {
-        console.error(error);
+        console.error('❌ Error registering slash commands:', error);
     }
 });
 
 client.on(Events.InteractionCreate, async interaction => {
-    const player = musicManager.getPlayer(interaction.guild.id);
+    try {
+        const player = musicManager.getPlayer(interaction.guild.id);
 
-    if (interaction.isChatInputCommand()) {
-        const command = interaction.commandName;
+        if (interaction.isChatInputCommand()) {
+            const command = interaction.commandName;
 
-        if (command === 'setup') {
-            await setupCommand.execute(interaction);
-        } else if (command === 'play') {
-            await handlePlay(interaction, player);
-        } else if (command === 'skip') {
-            player.skip();
-            await interaction.reply({ content: '⏭ 스킵했습니다.', ephemeral: true });
-            await updatePanel(interaction.guild.id, player, client);
-        } else if (command === 'stop') {
-            player.stop();
-            await interaction.reply({ content: '⏹ 정지했습니다.', ephemeral: true });
-            await updatePanel(interaction.guild.id, player, client);
-        } else if (command === 'pause') {
-            player.pause();
-            await interaction.reply({ content: '⏸ 일시정지했습니다.', ephemeral: true });
-            await updatePanel(interaction.guild.id, player, client);
-        } else if (command === 'resume') {
-            player.resume();
-            await interaction.reply({ content: '▶️ 다시 재생합니다.', ephemeral: true });
-            await updatePanel(interaction.guild.id, player, client);
-        } else if (command === 'nowplaying') {
-            const track = player.queue[0];
-            if (!track) return interaction.reply({ content: '❌ 재생 중인 곡이 없습니다.', ephemeral: true });
-            await interaction.reply({ content: `🎵 **현재 재생 중:** [${track.title}](${track.url})`, ephemeral: true });
-        } else if (command === 'panelrefresh') {
-            await updatePanel(interaction.guild.id, player, client);
-            await interaction.reply({ content: '🔄 제어판을 새로 고쳤습니다.', ephemeral: true });
-        } else if (command === 'disconnect') {
-            musicManager.removePlayer(interaction.guild.id);
-            await interaction.reply({ content: '🔌 퇴장했습니다.', ephemeral: true });
-            await updatePanel(interaction.guild.id, player, client);
-        } else if (command === 'queue') {
-            const q = player.queue.map((t, i) => `${i + 1}. ${t.title}`).join('\n') || '대기열이 비어있습니다.';
-            await interaction.reply({ content: `📜 **대기열:**\n${q}`, ephemeral: true });
-        }
-    } 
-    
-    if (interaction.isButton()) {
-        const customId = interaction.customId;
-        
-        if (customId === 'music_pause_resume') {
-            if (player.player.state.status === 'paused') {
-                player.resume();
-                await interaction.reply({ content: '▶️ 다시 재생합니다.', ephemeral: true });
-            } else {
+            if (command === 'setup') {
+                await setupCommand.execute(interaction);
+            } else if (command === 'play') {
+                await handlePlay(interaction, player);
+            } else if (command === 'skip') {
+                player.skip();
+                await interaction.reply({ content: '⏭ 스킵했습니다.', ephemeral: true });
+                await updatePanel(interaction.guild.id, player, client);
+            } else if (command === 'stop') {
+                player.stop();
+                await interaction.reply({ content: '⏹ 정지했습니다.', ephemeral: true });
+                await updatePanel(interaction.guild.id, player, client);
+            } else if (command === 'pause') {
                 player.pause();
                 await interaction.reply({ content: '⏸ 일시정지했습니다.', ephemeral: true });
+                await updatePanel(interaction.guild.id, player, client);
+            } else if (command === 'resume') {
+                player.resume();
+                await interaction.reply({ content: '▶️ 다시 재생합니다.', ephemeral: true });
+                await updatePanel(interaction.guild.id, player, client);
+            } else if (command === 'nowplaying') {
+                const track = player.queue[0];
+                if (!track) return interaction.reply({ content: '❌ 재생 중인 곡이 없습니다.', ephemeral: true });
+                await interaction.reply({ content: `🎵 **현재 재생 중:** [${track.title}](${track.url})`, ephemeral: true });
+            } else if (command === 'panelrefresh') {
+                await updatePanel(interaction.guild.id, player, client);
+                await interaction.reply({ content: '🔄 제어판을 새로 고쳤습니다.', ephemeral: true });
+            } else if (command === 'disconnect') {
+                musicManager.removePlayer(interaction.guild.id);
+                await interaction.reply({ content: '🔌 퇴장했습니다.', ephemeral: true });
+                await updatePanel(interaction.guild.id, player, client);
+            } else if (command === 'queue') {
+                const q = player.queue.map((t, i) => `${i + 1}. ${t.title}`).join('\n') || '대기열이 비어있습니다.';
+                await interaction.reply({ content: `📜 **대기열:**\n${q}`, ephemeral: true });
             }
-        } else if (customId === 'music_skip') {
-            player.skip();
-            await interaction.reply({ content: '⏭ 스킵했습니다.', ephemeral: true });
-        } else if (customId === 'music_stop') {
-            player.stop();
-            await interaction.reply({ content: '⏹ 정지했습니다.', ephemeral: true });
-        } else if (customId === 'music_queue') {
-            const q = player.queue.map((t, i) => `${i + 1}. ${t.title}`).join('\n') || '대기열이 비어있습니다.';
-            await interaction.reply({ content: `📜 **대기열:**\n${q}`, ephemeral: true });
-        } else if (customId === 'music_disconnect') {
-            musicManager.removePlayer(interaction.guild.id);
-            await interaction.reply({ content: '🔌 퇴장했습니다.', ephemeral: true });
-        }
+        } 
+        
+        if (interaction.isButton()) {
+            const customId = interaction.customId;
+            
+            if (customId === 'music_pause_resume') {
+                if (player.player.state.status === 'paused') {
+                    player.resume();
+                    await interaction.reply({ content: '▶️ 다시 재생합니다.', ephemeral: true });
+                } else {
+                    player.pause();
+                    await interaction.reply({ content: '⏸ 일시정지했습니다.', ephemeral: true });
+                }
+            } else if (customId === 'music_skip') {
+                player.skip();
+                await interaction.reply({ content: '⏭ 스킵했습니다.', ephemeral: true });
+            } else if (customId === 'music_stop') {
+                player.stop();
+                await interaction.reply({ content: '⏹ 정지했습니다.', ephemeral: true });
+            } else if (customId === 'music_queue') {
+                const q = player.queue.map((t, i) => `${i + 1}. ${t.title}`).join('\n') || '대기열이 비어있습니다.';
+                await interaction.reply({ content: `📜 **대기열:**\n${q}`, ephemeral: true });
+            } else if (customId === 'music_disconnect') {
+                musicManager.removePlayer(interaction.guild.id);
+                await interaction.reply({ content: '🔌 퇴장했습니다.', ephemeral: true });
+            }
 
-        // Auto-update panel after button click
-        await updatePanel(interaction.guild.id, player, client);
+            // Auto-update panel after button click
+            await updatePanel(interaction.guild.id, player, client);
+        }
+    } catch (error) {
+        console.error('❌ Interaction Error:', error);
     }
 });
 
-client.login(process.env.DISCORD_BOT_TOKEN);
+// Error Handling
+process.on('unhandledRejection', error => {
+    console.error('❌ Unhandled promise rejection:', error);
+});
+
+process.on('uncaughtException', error => {
+    console.error('❌ Uncaught exception:', error);
+});
+
+console.log('⏳ Attempting to login to Discord...');
+client.login(process.env.DISCORD_BOT_TOKEN).catch(error => {
+    console.error('❌ Failed to login to Discord:', error);
+});
