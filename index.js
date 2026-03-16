@@ -25,8 +25,15 @@ const client = new Client({
     ]
 });
 
+// Detailed connection logging
+client.on('debug', m => {
+    if (m.includes('Connecting') || m.includes('Ready') || m.includes('Heartbeat')) {
+        console.log('🔍 [DEBUG]', m);
+    }
+});
+client.on('warn', m => console.log('⚠️ [WARN]', m));
 client.on(Events.Error, error => {
-    console.error('❌ Discord Client Error:', error);
+    console.error('❌ [ERROR] Discord Client Error:', error);
 });
 
 client.commands = new Collection();
@@ -35,9 +42,8 @@ client.commands.set(setupCommand.name, setupCommand);
 const musicManager = new MusicManager(client);
 
 client.once(Events.ClientReady, async () => {
-    console.log(`✅ Logged in as ${client.user.tag}`);
+    console.log(`✅ [SUCCESS] Logged in as ${client.user.tag}`);
 
-    // Register Slash Commands
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
     const commands = [
         { name: 'setup', description: '음악 채널 및 제어판을 초기화합니다.' },
@@ -61,90 +67,54 @@ client.once(Events.ClientReady, async () => {
         await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
         console.log('✅ Commands registered successfully.');
     } catch (error) {
-        console.error('❌ Error registering slash commands:', error);
+        console.error('❌ [ERROR] Slash commands registration failed:', error);
     }
 });
 
-client.on(Events.InteractionCreate, async interaction => {
+client.on(Events.InteractionCreate, async i => {
     try {
-        const player = musicManager.getPlayer(interaction.guild.id);
-
-        if (interaction.isChatInputCommand()) {
-            const command = interaction.commandName;
-
-            if (command === 'setup') {
-                await setupCommand.execute(interaction);
-            } else if (command === 'play') {
-                await handlePlay(interaction, player);
-            } else if (command === 'skip') {
-                player.skip();
-                await interaction.reply({ content: '⏭ 스킵했습니다.', ephemeral: true });
-                await updatePanel(interaction.guild.id, player, client);
-            } else if (command === 'stop') {
-                player.stop();
-                await interaction.reply({ content: '⏹ 정지했습니다.', ephemeral: true });
-                await updatePanel(interaction.guild.id, player, client);
-            } else if (command === 'pause') {
-                player.pause();
-                await interaction.reply({ content: '⏸ 일시정지했습니다.', ephemeral: true });
-                await updatePanel(interaction.guild.id, player, client);
-            } else if (command === 'resume') {
-                player.resume();
-                await interaction.reply({ content: '▶️ 다시 재생합니다.', ephemeral: true });
-                await updatePanel(interaction.guild.id, player, client);
-            } else if (command === 'nowplaying') {
-                const track = player.queue[0];
-                if (!track) return interaction.reply({ content: '❌ 재생 중인 곡이 없습니다.', ephemeral: true });
-                await interaction.reply({ content: `🎵 **현재 재생 중:** [${track.title}](${track.url})`, ephemeral: true });
-            } else if (command === 'panelrefresh') {
-                await updatePanel(interaction.guild.id, player, client);
-                await interaction.reply({ content: '🔄 제어판을 새로 고쳤습니다.', ephemeral: true });
-            } else if (command === 'disconnect') {
-                musicManager.removePlayer(interaction.guild.id);
-                await interaction.reply({ content: '🔌 퇴장했습니다.', ephemeral: true });
-                await updatePanel(interaction.guild.id, player, client);
-            } else if (command === 'queue') {
-                const q = player.queue.map((t, i) => `${i + 1}. ${t.title}`).join('\n') || '대기열이 비어있습니다.';
-                await interaction.reply({ content: `📜 **대기열:**\n${q}`, ephemeral: true });
+        const player = musicManager.getPlayer(i.guild.id);
+        if (i.isChatInputCommand()) {
+            if (i.commandName === 'setup') await setupCommand.execute(i);
+            else if (i.commandName === 'play') await handlePlay(i, player);
+            else {
+                if (i.commandName === 'skip') player.skip();
+                else if (i.commandName === 'stop') player.stop();
+                else if (i.commandName === 'pause') player.pause();
+                else if (i.commandName === 'resume') player.resume();
+                else if (i.commandName === 'disconnect') musicManager.removePlayer(i.guild.id);
+                
+                if (!i.replied && !i.deferred) await i.reply({ content: '✅ 처리되었습니다.', ephemeral: true });
+                await updatePanel(i.guild.id, player, client);
             }
-        } 
-        
-        if (interaction.isButton()) {
-            const customId = interaction.customId;
-            
-            if (customId === 'music_pause_resume') {
-                if (player.player.state.status === 'paused') {
-                    player.resume();
-                    await interaction.reply({ content: '▶️ 다시 재생합니다.', ephemeral: true });
-                } else {
-                    player.pause();
-                    await interaction.reply({ content: '⏸ 일시정지했습니다.', ephemeral: true });
-                }
-            } else if (customId === 'music_skip') {
-                player.skip();
-                await interaction.reply({ content: '⏭ 스킵했습니다.', ephemeral: true });
-            } else if (customId === 'music_stop') {
-                player.stop();
-                await interaction.reply({ content: '⏹ 정지했습니다.', ephemeral: true });
-            } else if (customId === 'music_queue') {
-                const q = player.queue.map((t, i) => `${i + 1}. ${t.title}`).join('\n') || '대기열이 비어있습니다.';
-                await interaction.reply({ content: `📜 **대기열:**\n${q}`, ephemeral: true });
-            } else if (customId === 'music_disconnect') {
-                musicManager.removePlayer(interaction.guild.id);
-                await interaction.reply({ content: '🔌 퇴장했습니다.', ephemeral: true });
-            }
+        }
+        if (i.isButton()) {
+            if (i.customId === 'music_pause_resume') {
+                if (player.player.state.status === 'paused') player.resume();
+                else player.pause();
+            } else if (i.customId === 'music_skip') player.skip();
+            else if (i.customId === 'music_stop') player.stop();
+            else if (i.customId === 'music_disconnect') musicManager.removePlayer(i.guild.id);
 
-            await updatePanel(interaction.guild.id, player, client);
+            if (!i.replied && !i.deferred) await i.reply({ content: '✅ 버튼 처리 완료.', ephemeral: true });
+            await updatePanel(i.guild.id, player, client);
         }
     } catch (error) {
-        console.error('❌ Interaction Error:', error);
+        console.error('❌ [ERROR] Interaction failed:', error);
     }
 });
 
-process.on('unhandledRejection', error => console.error('❌ Unhandled rejection:', error));
-process.on('uncaughtException', error => console.error('❌ Uncaught exception:', error));
+process.on('unhandledRejection', error => console.error('❌ [FATAL] Unhandled rejection:', error));
+process.on('uncaughtException', error => console.error('❌ [FATAL] Uncaught exception:', error));
 
 console.log('⏳ Attempting to login to Discord...');
-client.login(process.env.DISCORD_BOT_TOKEN).catch(error => {
-    console.error('❌ Failed to login to Discord:', error);
+const loginTimeout = setTimeout(() => {
+    console.log('⚠️ [TIMEOUT] 로그인 시도가 30초를 넘었습니다. 토큰이나 인터넷 연결을 확인해 주세요.');
+}, 30000);
+
+client.login(process.env.DISCORD_BOT_TOKEN).then(() => {
+    clearTimeout(loginTimeout);
+}).catch(error => {
+    clearTimeout(loginTimeout);
+    console.error('❌ [ERROR] Login failed:', error);
 });
