@@ -25,6 +25,16 @@ const client = new Client({
     ]
 });
 
+client.on(Events.Error, error => {
+    console.error('❌ Discord Client Error:', error);
+});
+
+client.on('debug', info => {
+    if (info.includes('SessionLimitInfo') || info.includes('Ready')) {
+        console.log('🔍 Debug:', info);
+    }
+});
+
 client.commands = new Collection();
 client.commands.set(setupCommand.name, setupCommand);
 
