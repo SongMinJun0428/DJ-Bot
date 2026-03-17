@@ -138,7 +138,12 @@ client.on(Events.InteractionCreate, async interaction => {
         case 'player_stop':
           if (queue.connection) queue.connection.destroy();
           player.queues.delete(interaction.guildId);
+          await interaction.reply({ content: '⏹️ 정지됨', flags: [MessageFlags.Ephemeral] });
+          break;
       }
+    } catch (error) {
+      console.error(error);
+      if (!interaction.replied) await interaction.reply({ content: '작동 중 오류 발생', flags: [MessageFlags.Ephemeral] });
     }
   }
 });
