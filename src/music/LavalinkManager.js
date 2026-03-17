@@ -52,7 +52,7 @@ class LavalinkManager {
     this.client = client;
     
     const botId = client.user ? client.user.id : null;
-    console.log(`[v3.1.7] Initializing Kazagumo. Bot ID: ${botId}`);
+    console.log(`[v3.1.8] Initializing Kazagumo. Bot ID: ${botId}`);
     
     this.kazagumo = new Kazagumo({
       defaultSearchEngine: 'youtube',
@@ -60,7 +60,7 @@ class LavalinkManager {
         const guild = client.guilds.cache.get(guildId);
         if (guild) guild.shard.send(payload);
       }
-    }, new Connectors.DiscordJS(client), [], { // Start with empty array
+    }, new Connectors.DiscordJS(client), [], {
         id: botId, 
         moveOnDisconnect: true,
         resume: true,
@@ -68,12 +68,20 @@ class LavalinkManager {
     });
 
     this.shoukaku = this.kazagumo.shoukaku;
+    
+    // CRITICAL FIX: Manually bind the ID if Shoukaku missed it
+    if (!this.shoukaku.id && botId) {
+        console.log(`[v3.1.8] Forcing Shoukaku ID to ${botId}`);
+        this.shoukaku.id = botId;
+    }
+    if (this.shoukaku.connector && !this.shoukaku.connector.id && botId) {
+        this.shoukaku.connector.id = botId;
+    }
 
-    // Manually add nodes now that Shoukaku has the ID
-    console.log(`[v3.1.7] Manually registering ${Nodes.length} nodes...`);
+    // Manually add nodes
+    console.log(`[v3.1.8] Registering ${Nodes.length} nodes...`);
     Nodes.forEach(node => {
         try {
-            // Use all possible field names for compatibility
             const nodeConfig = {
                 name: node.name,
                 host: node.host,
@@ -84,23 +92,23 @@ class LavalinkManager {
                 url: `${node.host}:${node.port}`
             };
             this.shoukaku.addNode(nodeConfig);
-            console.log(`[v3.1.7] Node registration requested: ${node.name}`);
+            console.log(`[v3.1.8] Node added to queue: ${node.name}`);
         } catch (e) {
-            console.error(`[v3.1.7] Node add error (${node.name}):`, e.message);
+            console.error(`[v3.1.8] Node error (${node.name}):`, e.message);
         }
     });
 
-    console.log(`[v3.1.7] Initialization complete. Nodes in Map: ${this.shoukaku.nodes.size}`);
+    console.log(`[v3.1.8] Initialization complete. Actual Nodes: ${this.shoukaku.nodes.size}`);
 
     // Node Event Logs
-    this.shoukaku.on('ready', (name) => console.log(`[v3.1.7] Node "${name}" is READY.`));
-    this.shoukaku.on('error', (name, error) => console.error(`[v3.1.7] Node "${name}" error:`, error));
+    this.shoukaku.on('ready', (name) => console.log(`[v3.1.8] Node "${name}" is READY.`));
+    this.shoukaku.on('error', (name, error) => console.error(`[v3.1.8] Node "${name}" error:`, error));
     this.shoukaku.on('debug', (name, info) => {
-        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v3.1.7 DEBUG] Node "${name}": ${info}`);
+        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v3.1.8 DEBUG] Node "${name}": ${info}`);
     });
     
     this.kazagumo.on('playerStart', (player, track) => {
-        console.log(`[v3.1.7 AUDIO] Playing: ${track.title}`);
+        console.log(`[v3.1.8 AUDIO] Playing: ${track.title}`);
         const channel = client.channels.cache.get(player.textId);
         if (channel) {
             const song = {
@@ -117,13 +125,13 @@ class LavalinkManager {
     });
 
     this.kazagumo.on('playerEnd', (player) => {
-        console.log('[v3.1.7 AUDIO] Track ended.');
+        console.log('[v3.1.8 AUDIO] Track ended.');
     });
 
     this.kazagumo.on('playerEmpty', (player) => {
-        console.log('[v3.1.7 AUDIO] Queue empty, leaving channel.');
+        console.log('[v3.1.8 AUDIO] Queue empty, leaving channel.');
         const channel = client.channels.cache.get(player.textId);
-        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v3.1.7)');
+        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v3.1.8)');
         player.destroy();
     });
   }
