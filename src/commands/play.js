@@ -18,51 +18,68 @@ module.exports = {
         .setDescription('재생할 음악 파일 (mp3, wav 등)')
         .setRequired(false)),
   async execute(interaction, fromChannel = false) {
-    const attachment = interaction.options ? interaction.options.getAttachment('file') : null;
-    const query = fromChannel ? interaction.options.getString() : (attachment ? attachment.url : interaction.options.getString('query'));
+    const attachment = interaction.options ? (interaction.options.getAttachment ? interaction.options.getAttachment('file') : null) : null;
+    let query = interaction.options ? (interaction.options.getString('query') || interaction.options.getString()) : null;
     
-    if (!query && !attachment) {
-      return interaction.reply({ content: '검색어 또는 파일을 입력해주세요!', ephemeral: true });
+    if (attachment && !query) {
+      query = attachment.url;
     }
-    const guild = interaction.guild;
-    const member = interaction.member;
 
+    if (!query) {
+      const msg = '검색어 또는 파일을 입력해주세요!';
+      if (fromChannel) return interaction.channel.send(msg);
+      return interaction.reply({ content: msg, ephemeral: true });
+    }
+
+    const member = interaction.member;
     if (!member.voice.channel) {
-      return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', ephemeral: true });
+      const msg = '먼저 음성 채널에 입장해주세요!';
+      if (fromChannel) return interaction.channel.send(msg);
+      return interaction.reply({ content: msg, ephemeral: true });
     }
 
     try {
-      // Defer if not from channel
       if (!fromChannel && !interaction.deferred) await interaction.deferReply();
 
-      // If it's a URL
       if (query.startsWith('http')) {
-        const stream = await play.stream(query).catch(err => {
-            console.error('Stream error:', err);
-            return null;
-        });
+        let song;
+        if (attachment || query.includes('cdn.discordapp.com')) {
+            song = {
+                title: attachment ? attachment.name : '업로드 파일',
+                url: query,
+                thumbnail: 'https://i.imgur.com/vHdfyC7.png',
+                durationRaw: '파일 재생',
+                author: member.displayName,
+                isLocal: false
+            };
+        } else {
+            console.log(`Fetching video info for: ${query}`);
+            const videoInfo = await play.video_info(query).catch(err => {
+              console.error('Video Info Error:', err.message);
+              return null;
+            });
 
-        if (!stream) {
-            return interaction.followUp({ content: '❌ 음악 스트림을 불러올 수 없습니다. URL을 확인해주세요.' });
+            if (!videoInfo) {
+              const errMsg = '❌ 유효하지 않은 주소거나 유튜브 로드 실패. (지역 제한 또는 성인 인증 필요할 수 있음)';
+              return fromChannel ? interaction.channel.send(errMsg) : interaction.followUp(errMsg);
+            }
+
+            song = {
+                title: videoInfo.video_details.title,
+                url: videoInfo.video_details.url,
+                thumbnail: videoInfo.video_details.thumbnails[0].url,
+                durationRaw: videoInfo.video_details.durationRaw,
+                author: videoInfo.video_details.channel.name,
+                isLocal: false
+            };
         }
-
-        const videoInfo = await play.video_info(query);
-        const song = {
-          title: videoInfo.video_details.title,
-          url: videoInfo.video_details.url,
-          thumbnail: videoInfo.video_details.thumbnails[0].url,
-          durationRaw: videoInfo.video_details.durationRaw,
-          author: videoInfo.video_details.channel.name,
-          isLocal: false
-        };
-
         await this.addAndPlay(interaction, song, fromChannel);
       } else {
-        // Search for top 10
+        console.log(`Searching for: ${query}`);
         const searchResults = await play.search(query, { limit: 10 });
         if (searchResults.length === 0) {
-          const msg = '검색 결과가 없습니다.';
-          return fromChannel ? interaction.channel.send(msg) : interaction.followUp(msg);
+            const msg = '검색 결과가 없습니다.';
+            return fromChannel ? interaction.channel.send(msg) : interaction.followUp(msg);
         }
 
         const selectMenu = new StringSelectMenuBuilder()
@@ -70,47 +87,38 @@ module.exports = {
           .setPlaceholder('노래를 선택하세요 (상위 10개)')
           .addOptions(searchResults.map((video, index) => ({
             label: `${index + 1}. ${video.title.substring(0, 90)}`,
-            description: video.channel.name || '유튜브 자료',
+            description: video.channel ? (video.channel.name || 'Youtube') : 'Youtube',
             value: video.url
           })));
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
-        const followUpContent = {
-          content: `🔍 **${query}** 검색 결과입니다:`,
-          components: [row]
-        };
-
         const response = fromChannel 
-            ? await interaction.channel.send(followUpContent)
-            : await interaction.followUp(followUpContent);
+            ? await interaction.channel.send({ content: `🔍 **${query}** 검색 결과:`, components: [row] })
+            : await interaction.followUp({ content: '재생할 노래를 선택해주세요:', components: [row] });
 
-        // Wait for selection
         const filter = i => i.customId === 'select_song' && i.user.id === member.id;
         try {
           const confirmation = await response.awaitMessageComponent({ filter, time: 30000 });
-          const selectedUrl = confirmation.values[0];
-          const selectedVideo = searchResults.find(v => v.url === selectedUrl);
-
+          const selectedVideo = searchResults.find(v => v.url === confirmation.values[0]);
           const song = {
             title: selectedVideo.title,
             url: selectedVideo.url,
             thumbnail: selectedVideo.thumbnails[0].url,
             durationRaw: selectedVideo.durationRaw,
-            author: selectedVideo.channel.name,
+            author: selectedVideo.channel ? selectedVideo.channel.name : '알 수 없음',
             isLocal: false
           };
-
           await confirmation.update({ content: `✅ **${song.title}** 선택됨!`, components: [] });
           await this.addAndPlay(interaction, song, fromChannel);
-
         } catch (e) {
-          if (fromChannel) response.edit({ content: '선택 시간이 초과되었습니다.', components: [] });
-          else interaction.editReply({ content: '선택 시간이 초과되었습니다.', components: [] });
+          console.error('Selection timeout or error:', e);
+          if (fromChannel) response.edit({ content: '선택 시간이 초과되었습니다.', components: [] }).catch(() => {});
+          else interaction.editReply({ content: '선택 시간이 초과되었습니다.', components: [] }).catch(() => {});
         }
       }
     } catch (e) {
-      console.error('Play command error:', e);
-      const errMsg = '❌ 오류가 발생했습니다. (권한 또는 스트리밍 문제)';
+      console.error('Play command Error:', e);
+      const errMsg = '❌ 재생 중 오류가 발생했습니다. (봇 권한 또는 네트워크 확인 요망)';
       if (fromChannel) interaction.channel.send(errMsg);
       else if (interaction.deferred) interaction.followUp(errMsg);
       else interaction.reply(errMsg);

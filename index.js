@@ -45,27 +45,28 @@ client.once(Events.ClientReady, async c => {
 });
 
 client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isChatInputCommand() && !interaction.isButton()) return;
+  if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isStringSelectMenu()) return;
 
   if (interaction.isChatInputCommand()) {
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
-
     try {
       await command.execute(interaction);
     } catch (error) {
-      console.error(error);
-      await interaction.reply({ content: '명령어 실행 중 오류가 발생했습니다.', ephemeral: true });
+      console.error('Command Execution Error:', error);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true });
+      } else if (interaction.deferred) {
+        await interaction.editReply({ content: '오류가 발생했습니다.' });
+      }
     }
   }
 
   if (interaction.isButton()) {
     const queue = player.getQueue(interaction.guildId);
     
-    // 1. Dashboard category buttons (can be used even if queue is empty)
     if (interaction.customId.startsWith('btn_')) {
-      const member = interaction.member;
-      if (!member.voice.channel) {
+      if (!interaction.member.voice.channel) {
         return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', ephemeral: true });
       }
 
@@ -79,26 +80,29 @@ client.on(Events.InteractionCreate, async interaction => {
         case 'btn_recent': query = '최신곡'; break;
         case 'btn_madmovie': query = '매드무비 브금'; break;
         case 'btn_search':
-          return interaction.editReply({ content: '음악 채널에 노래 제목을 직접 입력하시면 검색이 시작됩니다!' });
+          return interaction.editReply({ content: '음악 채널에 노래 제목이나 주소(또는 파일 업로드)를 입력하시면 바로 재생됩니다!' });
         case 'btn_help':
-          return interaction.editReply({ content: '명령어 목록: `/play`, `/skip`, `/queue`, `/stop`, `/setup`' });
+          return interaction.editReply({ content: '명령어: `/play`, `/skip`, `/stop`, `/setup`' });
       }
 
       if (query && playCmd) {
-        // Mocking interaction for play command
         const mockInteraction = {
           guild: interaction.guild,
           member: interaction.member,
           channel: interaction.channel,
           guildId: interaction.guildId,
-          options: { getString: () => query },
+          options: { 
+            getString: (key) => key === 'query' ? query : null,
+            getAttachment: () => null 
+          },
           deferReply: () => Promise.resolve(),
           followUp: (msg) => interaction.channel.send(msg),
           reply: (msg) => interaction.channel.send(msg),
-          editReply: (msg) => interaction.editReply(msg)
+          editReply: (msg) => interaction.editReply(msg),
+          deferred: true
         };
         await playCmd.execute(mockInteraction, true);
-        return interaction.editReply({ content: `🔍 **${query}** 테마로 재생을 시작합니다.` });
+        return interaction.editReply({ content: `🔍 **${query}** 테마 재생 시작.` });
       }
       return;
     }
