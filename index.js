@@ -33,7 +33,8 @@ for (const file of commandFiles) {
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
-  console.log('--- [BOT STARTUP DIAGNOSTIC] ---');
+  console.log('====================================');
+  console.log('--- [v2.5 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
   // CRITICAL INTENT CHECK
