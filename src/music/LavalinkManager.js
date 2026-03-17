@@ -14,6 +14,12 @@ const Nodes = [
     url: 'lavalink.jirayu.net:443',
     auth: 'youshallnotpass',
     secure: true
+  },
+  {
+    name: 'Muzykant (Public)',
+    url: 'lavalink_v4.muzykant.xyz:443',
+    auth: 'https://discord.gg/v6sdrD9kPh',
+    secure: true
   }
 ];
 
@@ -31,9 +37,11 @@ class LavalinkManager {
     }, new Connectors.DiscordJS(client), Nodes);
 
     // Node Event Logs
-    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v2.9.2] Node "${name}" is READY. Bridge established.`));
-    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v2.9.2] Node "${name}" connection error:`, error));
-    this.kazagumo.shoukaku.on('debug', (name, info) => console.log(`[v2.9.2 DEBUG] Node "${name}": ${info}`));
+    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v3.0.0] Node "${name}" is READY. (Audio Bypass Active)`));
+    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v3.0.0] Node "${name}" error:`, error));
+    this.kazagumo.shoukaku.on('debug', (name, info) => {
+        if (info.includes('Ready')) console.log(`[v3.0.0 DEBUG] Node "${name}": ${info}`);
+    });
     
     this.kazagumo.on('playerStart', (player, track) => {
         console.log(`[v2.9.0 AUDIO] Playing: ${track.title}`);
