@@ -10,6 +10,12 @@ const Nodes = [
     secure: true
   },
   {
+    name: 'LexisHost (Public)',
+    url: 'lavalink.lexis.host:443',
+    auth: 'lexishostlavalink',
+    secure: true
+  },
+  {
     name: 'Jirayu (Public)',
     url: 'lavalink.jirayu.net:443',
     auth: 'youshallnotpass',
@@ -19,6 +25,12 @@ const Nodes = [
     name: 'Muzykant (Public)',
     url: 'lavalink_v4.muzykant.xyz:443',
     auth: 'https://discord.gg/v6sdrD9kPh',
+    secure: true
+  },
+  {
+    name: 'Lavalink.pw (Public)',
+    url: 'v4.lavalink.pw:443',
+    auth: 'youshallnotpass',
     secure: true
   }
 ];
@@ -37,14 +49,14 @@ class LavalinkManager {
     }, new Connectors.DiscordJS(client), Nodes);
 
     // Node Event Logs
-    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v3.0.7] Node "${name}" is READY. (Audio Bypass Active)`));
-    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v3.0.7] Node "${name}" error:`, error));
+    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v3.0.8] Node "${name}" is READY. (Audio Bypass Active)`));
+    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v3.0.8] Node "${name}" error:`, error));
     this.kazagumo.shoukaku.on('debug', (name, info) => {
-        if (info.includes('Ready')) console.log(`[v3.0.7 DEBUG] Node "${name}": ${info}`);
+        if (info.includes('Ready')) console.log(`[v3.0.8 DEBUG] Node "${name}": ${info}`);
     });
     
     this.kazagumo.on('playerStart', (player, track) => {
-        console.log(`[v3.0.7 AUDIO] Playing: ${track.title}`);
+        console.log(`[v3.0.8 AUDIO] Playing: ${track.title}`);
         const channel = client.channels.cache.get(player.textId);
         if (channel) {
             const song = {

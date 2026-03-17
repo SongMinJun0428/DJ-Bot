@@ -1,6 +1,6 @@
 {
   "name": "dj-bot",
-  "version": "3.0.7",
+  "version": "3.0.8",
   "description": "Alohang style Discord DJ Bot",
   "main": "index.js",
   "scripts": {
