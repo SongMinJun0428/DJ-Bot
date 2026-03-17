@@ -4,29 +4,24 @@ const embeds = require('../utils/embeds');
 
 const Nodes = [
   {
-    name: 'Moonlight (Public)',
-    url: 'lavalink.heavencloud.in:443',
-    auth: 'youshallnotpass',
+    name: 'Serenetia (Public)',
+    url: 'lavalinkv4.serenetia.com:443',
+    auth: 'https://seretia.link/discord',
     secure: true
   },
   {
-      name: 'Ajie (Public)',
-      url: 'lavalink.ajie.top:443',
-      auth: 'ajie.top',
-      secure: true
+    name: 'Jirayu (Public)',
+    url: 'lavalink.jirayu.net:443',
+    auth: 'youshallnotpass',
+    secure: true
   }
 ];
 
 class LavalinkManager {
   constructor(client) {
     this.client = client;
-    this.shoukaku = new Shoukaku(new Connectors.DiscordJS(client), Nodes, {
-      moveOnDisconnect: true,
-      resume: true,
-      reconnectInterval: 5000,
-      reconnectTries: 10
-    });
-
+    
+    // Kazagumo v3 wraps Shoukaku v4 internally when initialized this way
     this.kazagumo = new Kazagumo({
       defaultSearchEngine: 'youtube',
       send: (guildId, payload) => {
@@ -35,8 +30,10 @@ class LavalinkManager {
       }
     }, new Connectors.DiscordJS(client), Nodes);
 
-    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v2.9.0 LAVALINK] Node "${name}" is now connected. (TCP-UDP Bridge Active)`));
-    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v2.9.0 LAVALINK] Node "${name}" error:`, error));
+    // Node Event Logs
+    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v2.9.2] Node "${name}" is READY. Bridge established.`));
+    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v2.9.2] Node "${name}" connection error:`, error));
+    this.kazagumo.shoukaku.on('debug', (name, info) => console.log(`[v2.9.2 DEBUG] Node "${name}": ${info}`));
     
     this.kazagumo.on('playerStart', (player, track) => {
         console.log(`[v2.9.0 AUDIO] Playing: ${track.title}`);
