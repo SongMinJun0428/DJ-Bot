@@ -151,39 +151,43 @@ class MusicPlayer {
       adapterCreator: voiceChannel.guild.voiceAdapterCreator,
       selfDeaf: true,
       selfMute: false,
-      debug: false // Set to true if further debugging is needed
+      group: 'dj-bot-default' // Group can help isolate connection states
     });
 
     queue.connection = connection;
 
     // Verbose logging for Railway debugging
     connection.on('stateChange', (oldState, newState) => {
-      console.log(`[VOICE CONNECTION] State changed: ${oldState.status} -> ${newState.status}`);
+      console.log(`[VOICE CONNECT] ${oldState.status} -> ${newState.status}`);
       if (newState.status === VoiceConnectionStatus.Ready) {
-          console.log('✅ Connection is READY and authenticated.');
+          console.log('✅ Connection SUCCESS: Voice server handshake complete.');
       }
     });
 
     connection.on('error', (error) => {
-        console.error('[VOICE CONNECTION] Fatal error:', error);
-        connection.destroy();
+        console.error('[VOICE CONNECT] ERROR:', error);
+        if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
+            connection.destroy();
+        }
         this.queues.delete(guildId);
     });
 
     try {
-      console.log('Attempting to wait for READY state (max 30s)...');
+      console.log('Handshaking with Discord Gateway... (Waiting up to 30s)');
       await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
     } catch (error) {
-      console.error('❌ Voice connection failed to READY:', error.message);
+      console.error('❌ Connection Timeout:', error.message);
+      console.log(`Final Condition: ${connection.state.status}`);
       
-      // Attempting to diagnose why it failed
-      console.log(`Last status: ${connection.state.status}`);
-      
-      if (connection.state.status !== VoiceConnectionStatus.Ready) {
-        connection.destroy();
-        this.queues.delete(guildId);
-        throw new Error('음성 채널 연결에 실패했습니다. (서버 네트워크 또는 봇 권한 문제)');
+      if (connection.state.status === VoiceConnectionStatus.Signalling) {
+          console.error('STUCK AT SIGNALLING: Check Gateway Intents (Voice State) and Server Permissions.');
       }
+
+      if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
+        connection.destroy();
+      }
+      this.queues.delete(guildId);
+      throw new Error('음성 연결 정체: 봇의 "음성 상태" 권한이 켜져 있는지 확인해 주세요.');
     }
 
     connection.on(VoiceConnectionStatus.Disconnected, async () => {
