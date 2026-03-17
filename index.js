@@ -144,15 +144,19 @@ client.on(Events.MessageCreate, async message => {
   if (config && message.channelId === config.music_channel_id) {
     // Treat message content as a search query
     // This will be handled by a helper function to play music
-    message.delete().catch(() => {});
-    // Dummy execute for now
-    interactionPlaceholder = { 
+    const attachment = message.attachments.first();
+    const interactionPlaceholder = { 
         guild: message.guild, 
         member: message.member, 
         channel: message.channel,
-        options: { getString: () => message.content },
+        guildId: message.guildId,
+        options: { 
+            getString: () => message.content,
+            getAttachment: () => attachment
+        },
         reply: (msg) => message.channel.send(msg),
-        followUp: (msg) => message.channel.send(msg)
+        followUp: (msg) => message.channel.send(msg),
+        deferred: false // interactionPlaceholder doesn't support deferReply easily here
     };
     const playCmd = client.commands.get('play');
     if (playCmd) playCmd.execute(interactionPlaceholder, true);

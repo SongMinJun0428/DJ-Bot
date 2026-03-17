@@ -1,5 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
+const packageJson = require('../../package.json');
+
 module.exports = {
   createDashboardEmbed: (guildName) => {
     return new EmbedBuilder()
@@ -16,7 +18,7 @@ module.exports = {
 **┃ 추천 곡 자동 재생 🎵**
 노래가 끝나면 봇이 알아서 다음 곡을 추천해줍니다!
       `)
-      .setFooter({ text: '이거 어떻게 하냐면요 /셋업 명령어예요' })
+      .setFooter({ text: `버전: v${packageJson.version} | /셋업 명령어 사용` })
       .setTimestamp();
   },
 

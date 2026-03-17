@@ -11,9 +11,19 @@ module.exports = {
       option.setName('query')
         .setNameLocalizations({ ko: '검색어' })
         .setDescription('노래 제목 또는 URL')
-        .setRequired(true)),
+        .setRequired(false))
+    .addAttachmentOption(option =>
+      option.setName('file')
+        .setNameLocalizations({ ko: '파일' })
+        .setDescription('재생할 음악 파일 (mp3, wav 등)')
+        .setRequired(false)),
   async execute(interaction, fromChannel = false) {
-    const query = fromChannel ? interaction.options.getString() : interaction.options.getString('query');
+    const attachment = interaction.options ? interaction.options.getAttachment('file') : null;
+    const query = fromChannel ? interaction.options.getString() : (attachment ? attachment.url : interaction.options.getString('query'));
+    
+    if (!query && !attachment) {
+      return interaction.reply({ content: '검색어 또는 파일을 입력해주세요!', ephemeral: true });
+    }
     const guild = interaction.guild;
     const member = interaction.member;
 

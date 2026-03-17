@@ -31,12 +31,17 @@ class MusicPlayer {
     this.queues.set(guild.id, queue);
 
     player.on(AudioPlayerStatus.Idle, () => {
+      console.log('Audio player is now Idle.');
       this.onSongEnd(guild.id);
     });
 
     player.on('error', error => {
-      console.error(`Error: ${error.message}`);
+      console.error(`Audio Player Error: ${error.message} with resource ${error.resource.metadata.title}`);
       this.onSongEnd(guild.id);
+    });
+
+    player.on('stateChange', (oldState, newState) => {
+      console.log(`Audio player transitioned from ${oldState.status} to ${newState.status}`);
     });
 
     return queue;
@@ -129,7 +134,12 @@ class MusicPlayer {
     });
 
     queue.connection.on(VoiceConnectionStatus.Disconnected, () => {
+      console.log('Voice connection disconnected.');
       this.queues.delete(voiceChannel.guild.id);
+    });
+
+    queue.connection.on('stateChange', (oldState, newState) => {
+      console.log(`Voice connection transitioned from ${oldState.status} to ${newState.status}`);
     });
   }
 }
