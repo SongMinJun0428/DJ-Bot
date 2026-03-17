@@ -34,10 +34,10 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v3.0.0 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v3.0.3 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v2.9.0)
+  // Initialize Lavalink Audio Engine (v3.0.3)
   player.init(client);
 
   // CRITICAL INTENT CHECK

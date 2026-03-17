@@ -37,14 +37,14 @@ class LavalinkManager {
     }, new Connectors.DiscordJS(client), Nodes);
 
     // Node Event Logs
-    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v3.0.0] Node "${name}" is READY. (Audio Bypass Active)`));
-    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v3.0.0] Node "${name}" error:`, error));
+    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v3.0.3] Node "${name}" is READY. (Audio Bypass Active)`));
+    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v3.0.3] Node "${name}" error:`, error));
     this.kazagumo.shoukaku.on('debug', (name, info) => {
-        if (info.includes('Ready')) console.log(`[v3.0.0 DEBUG] Node "${name}": ${info}`);
+        if (info.includes('Ready')) console.log(`[v3.0.3 DEBUG] Node "${name}": ${info}`);
     });
     
     this.kazagumo.on('playerStart', (player, track) => {
-        console.log(`[v2.9.0 AUDIO] Playing: ${track.title}`);
+        console.log(`[v3.0.3 AUDIO] Playing: ${track.title}`);
         const channel = client.channels.cache.get(player.textId);
         if (channel) {
             const song = {
