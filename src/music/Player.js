@@ -134,85 +134,44 @@ class MusicPlayer {
 
   async join(voiceChannel, textChannel) {
     const guildId = voiceChannel.guild.id;
-    
-    // Cleanup existing connection if any
     let queue = this.queues.get(guildId);
-    if (queue && queue.connection) {
-        console.log('Cleaning up existing voice connection for new join request.');
-        queue.connection.destroy();
-    }
-
+    if (queue && queue.connection) queue.connection.destroy();
     queue = await this.createQueue(voiceChannel.guild, textChannel, voiceChannel);
-    console.log(`Joining voice channel: ${voiceChannel.name} (${voiceChannel.id}) in guild ${guildId}`);
-    
+
     const connection = joinVoiceChannel({
       channelId: voiceChannel.id,
       guildId: guildId,
       adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-      selfDeaf: true,
+      selfDeaf: false, // v2.8: Sometimes required for certain NAT/UDP environments
       selfMute: false,
-      group: 'dj-bot-default' // Group can help isolate connection states
+      group: 'dj-bot-v2.8'
     });
-
-    // UDP Debug listener for Railway network analysis
-    connection.on('debug', message => {
-        if (message.includes('UDP')) console.log(`[UDP DEBUG] ${message}`);
-    });
-
     queue.connection = connection;
 
-    // Verbose logging for Railway debugging
-    connection.on('stateChange', (oldState, newState) => {
-      console.log(`[VOICE CONNECT] ${oldState.status} -> ${newState.status}`);
-      if (newState.status === VoiceConnectionStatus.Ready) {
-          console.log('✅ Connection SUCCESS: Voice server handshake complete.');
-      }
+    // v2.8 Deep Debugging
+    connection.on('stateChange', (o, n) => {
+        console.log(`[v2.8.0 VOICE] ${o.status} -> ${n.status}`);
+        if (n.status === 'signalling') console.log('[v2.8.0] Waiting for Voice Server IP... (If stuck here, Railway UDP is blocked)');
     });
 
-    connection.on('error', (error) => {
-        console.error('[VOICE CONNECT] ERROR:', error);
-        if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
-            connection.destroy();
-        }
-        this.queues.delete(guildId);
+    connection.on('debug', m => {
+        if (m.includes('UDP')) console.log(`[UDP DEBUG] ${m}`);
+        if (m.includes('DAVE') || m.includes('E2EE')) console.log(`[SECURITY DEBUG] ${m}`);
     });
 
     try {
-      console.log('Handshaking with Discord Gateway... (Attempt 1)');
-      await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-    } catch (error) {
-      console.warn('First handshake attempt failed, retrying once more...');
-      try {
-          await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-      } catch (retryError) {
-          console.error('❌ Connection Timeout after retries.');
-          console.log(`Final Condition: ${connection.state.status}`);
-          
-          if (connection.state.status === VoiceConnectionStatus.Signalling) {
-              console.error('[CRITICAL] Stuck at SIGNALLING. Gateway intents are working, but UDP handshake failed. This is likely a Firewall/Network (Railway UDP) issue.');
-          }
-
-          if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
-            connection.destroy();
-          }
-          this.queues.delete(guildId);
-          throw new Error('음성 연결 정체: 디스코드 개발자 포털에서 "Priveleged Gateway Intents" 3개를 모두 켰는지 확인해 주세요.');
+      console.log('[v2.8.0] Connecting (Targeting Node 22+ environment)...');
+      await entersState(connection, VoiceConnectionStatus.Ready, 25_000); // 25s for slow handshakes
+      console.log('✅ v2.8.0 Connection Success! Sound should be audible.');
+    } catch (e) {
+      console.error(`❌ v2.8.0 Voice failed. Final State: ${connection.state.status}`);
+      if (connection.state.status === 'signalling') {
+          console.error('[CRITICAL] Railway의 Inbound UDP가 막혀있습니다. Lavalink 도입이 시급합니다.');
       }
+      connection.destroy();
+      this.queues.delete(guildId);
+      throw new Error('음성 연결 정체: 호스팅 서버의 UDP 보안 설정을 확인해 주세요.');
     }
-
-    connection.on(VoiceConnectionStatus.Disconnected, async () => {
-      try {
-        console.log('Voice disconnected. Attempting automatic reconnection...');
-        await Promise.race([
-          entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-          entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-        ]);
-      } catch (e) {
-        console.log('Unable to reconnect, cleaning up.');
-        connection.destroy();
-        this.queues.delete(guildId);
-      }
-    });
   }
 }
 

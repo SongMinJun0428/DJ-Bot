@@ -1,6 +1,6 @@
 {
   "name": "dj-bot",
-  "version": "1.0.0",
+  "version": "2.8.0",
   "description": "Alohang style Discord DJ Bot",
   "main": "index.js",
   "scripts": {
@@ -8,11 +8,12 @@
     "dev": "nodemon index.js"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.12.0"
   },
   "dependencies": {
     "discord.js": "^14.17.3",
     "@discordjs/voice": "^0.18.0",
+    "@snazzah/davey": "latest",
     "play-dl": "latest",
     "dotenv": "^16.4.5",
     "sodium-native": "^4.0.0",

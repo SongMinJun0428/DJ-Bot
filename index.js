@@ -34,7 +34,7 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v2.6 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v2.8.0 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
   // CRITICAL INTENT CHECK
