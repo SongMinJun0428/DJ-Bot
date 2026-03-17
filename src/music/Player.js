@@ -90,11 +90,14 @@ class MusicPlayer {
     }
 
     try {
+      console.log(`Starting playback: ${song.title} (${song.url})`);
       let resource;
       if (song.isLocal) {
         resource = createAudioResource(song.url);
       } else {
-        const stream = await play.stream(song.url);
+        const stream = await play.stream(song.url, {
+            discordPlayerCompatibility: true
+        });
         resource = createAudioResource(stream.stream, { inputType: stream.type });
       }
 
@@ -103,14 +106,16 @@ class MusicPlayer {
       queue.playing = true;
       queue.lastUrl = song.url;
 
-      // Update dashboard or send Now Playing message
       if (queue.textChannel) {
         const npEmbed = embeds.createNowPlayingEmbed(song);
         const controls = embeds.createPlayerControlButtons();
         queue.textChannel.send({ embeds: [npEmbed], components: [controls] });
       }
     } catch (e) {
-      console.error(e);
+      console.error('Playback execution error:', e);
+      if (queue.textChannel) {
+        queue.textChannel.send('❌ 재생 중 오류가 발생했습니다. (유튜브 차단 또는 스트림 오류)');
+      }
       this.onSongEnd(guildId);
     }
   }

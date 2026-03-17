@@ -21,11 +21,21 @@ module.exports = {
       return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', ephemeral: true });
     }
 
-    if (!fromChannel) await interaction.deferReply();
-
     try {
+      // Defer if not from channel
+      if (!fromChannel && !interaction.deferred) await interaction.deferReply();
+
       // If it's a URL
       if (query.startsWith('http')) {
+        const stream = await play.stream(query).catch(err => {
+            console.error('Stream error:', err);
+            return null;
+        });
+
+        if (!stream) {
+            return interaction.followUp({ content: '❌ 음악 스트림을 불러올 수 없습니다. URL을 확인해주세요.' });
+        }
+
         const videoInfo = await play.video_info(query);
         const song = {
           title: videoInfo.video_details.title,
@@ -36,12 +46,13 @@ module.exports = {
           isLocal: false
         };
 
-        this.addAndPlay(interaction, song, fromChannel);
+        await this.addAndPlay(interaction, song, fromChannel);
       } else {
         // Search for top 10
         const searchResults = await play.search(query, { limit: 10 });
         if (searchResults.length === 0) {
-          return interaction.followUp({ content: '검색 결과가 없습니다.' });
+          const msg = '검색 결과가 없습니다.';
+          return fromChannel ? interaction.channel.send(msg) : interaction.followUp(msg);
         }
 
         const selectMenu = new StringSelectMenuBuilder()
@@ -49,18 +60,22 @@ module.exports = {
           .setPlaceholder('노래를 선택하세요 (상위 10개)')
           .addOptions(searchResults.map((video, index) => ({
             label: `${index + 1}. ${video.title.substring(0, 90)}`,
-            description: video.channel.name,
+            description: video.channel.name || '유튜브 자료',
             value: video.url
           })));
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
-        const response = await interaction.followUp({
-          content: '재생할 노래를 선택해주세요:',
+        const followUpContent = {
+          content: `🔍 **${query}** 검색 결과입니다:`,
           components: [row]
-        });
+        };
+
+        const response = fromChannel 
+            ? await interaction.channel.send(followUpContent)
+            : await interaction.followUp(followUpContent);
 
         // Wait for selection
-        const filter = i => i.customId === 'select_song' && i.user.id === interaction.member.id;
+        const filter = i => i.customId === 'select_song' && i.user.id === member.id;
         try {
           const confirmation = await response.awaitMessageComponent({ filter, time: 30000 });
           const selectedUrl = confirmation.values[0];
@@ -76,16 +91,19 @@ module.exports = {
           };
 
           await confirmation.update({ content: `✅ **${song.title}** 선택됨!`, components: [] });
-          this.addAndPlay(interaction, song, fromChannel);
+          await this.addAndPlay(interaction, song, fromChannel);
 
         } catch (e) {
-          await interaction.editReply({ content: '선택 시간이 초과되었습니다.', components: [] });
+          if (fromChannel) response.edit({ content: '선택 시간이 초과되었습니다.', components: [] });
+          else interaction.editReply({ content: '선택 시간이 초과되었습니다.', components: [] });
         }
       }
     } catch (e) {
-      console.error(e);
-      if (fromChannel) interaction.reply('오류가 발생했습니다.');
-      else interaction.followUp('오류가 발생했습니다.');
+      console.error('Play command error:', e);
+      const errMsg = '❌ 오류가 발생했습니다. (권한 또는 스트리밍 문제)';
+      if (fromChannel) interaction.channel.send(errMsg);
+      else if (interaction.deferred) interaction.followUp(errMsg);
+      else interaction.reply(errMsg);
     }
   },
 
@@ -93,7 +111,11 @@ module.exports = {
     let queue = musicPlayer.getQueue(interaction.guildId);
 
     if (!queue) {
-      await musicPlayer.join(interaction.member.voice.channel, interaction.channel);
+      const voiceChannel = interaction.member.voice.channel;
+      if (!voiceChannel) {
+        return interaction.channel.send('음성 채널을 찾을 수 없습니다.');
+      }
+      await musicPlayer.join(voiceChannel, interaction.channel);
       queue = musicPlayer.getQueue(interaction.guildId);
     }
 

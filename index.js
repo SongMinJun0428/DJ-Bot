@@ -60,30 +60,78 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.isButton()) {
-    // Handle player buttons
     const queue = player.getQueue(interaction.guildId);
+    
+    // 1. Dashboard category buttons (can be used even if queue is empty)
+    if (interaction.customId.startsWith('btn_')) {
+      const member = interaction.member;
+      if (!member.voice.channel) {
+        return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', ephemeral: true });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+      const playCmd = client.commands.get('play');
+      
+      let query = '';
+      switch (interaction.customId) {
+        case 'btn_popular': query = '인기차트'; break;
+        case 'btn_billboard': query = '빌보드 차트'; break;
+        case 'btn_recent': query = '최신곡'; break;
+        case 'btn_madmovie': query = '매드무비 브금'; break;
+        case 'btn_search':
+          return interaction.editReply({ content: '음악 채널에 노래 제목을 직접 입력하시면 검색이 시작됩니다!' });
+        case 'btn_help':
+          return interaction.editReply({ content: '명령어 목록: `/play`, `/skip`, `/queue`, `/stop`, `/setup`' });
+      }
+
+      if (query && playCmd) {
+        // Mocking interaction for play command
+        const mockInteraction = {
+          guild: interaction.guild,
+          member: interaction.member,
+          channel: interaction.channel,
+          guildId: interaction.guildId,
+          options: { getString: () => query },
+          deferReply: () => Promise.resolve(),
+          followUp: (msg) => interaction.channel.send(msg),
+          reply: (msg) => interaction.channel.send(msg),
+          editReply: (msg) => interaction.editReply(msg)
+        };
+        await playCmd.execute(mockInteraction, true);
+        return interaction.editReply({ content: `🔍 **${query}** 테마로 재생을 시작합니다.` });
+      }
+      return;
+    }
+
+    // 2. Player control buttons (require an active queue)
     if (!queue) return interaction.reply({ content: '현재 재생 중인 음악이 없습니다.', ephemeral: true });
 
-    switch (interaction.customId) {
-      case 'player_pause':
-        if (queue.player.state.status === 'paused') {
-          queue.player.unpause();
-          await interaction.reply({ content: '▶️ 재개됨', ephemeral: true });
-        } else {
-          queue.player.pause();
-          await interaction.reply({ content: '⏸️ 일시정지됨', ephemeral: true });
-        }
-        break;
-      case 'player_skip':
-        player.onSongEnd(interaction.guildId);
-        await interaction.reply({ content: '⏭️ 건너뜀', ephemeral: true });
-        break;
-      case 'player_stop':
-        queue.connection.destroy();
-        player.queues.delete(interaction.guildId);
-        await interaction.reply({ content: '⏹️ 정지됨', ephemeral: true });
-        break;
-      // Add more button handlers as needed
+    try {
+      switch (interaction.customId) {
+        case 'player_pause':
+          if (queue.player.state.status === 'paused') {
+            queue.player.unpause();
+            await interaction.reply({ content: '▶️ 재개됨', ephemeral: true });
+          } else {
+            queue.player.pause();
+            await interaction.reply({ content: '⏸️ 일시정지됨', ephemeral: true });
+          }
+          break;
+        case 'player_skip':
+          player.onSongEnd(interaction.guildId);
+          await interaction.reply({ content: '⏭️ 건너뜜', ephemeral: true });
+          break;
+        case 'player_stop':
+          queue.connection.destroy();
+          player.queues.delete(interaction.guildId);
+          await interaction.reply({ content: '⏹️ 정지됨', ephemeral: true });
+          break;
+      }
+    } catch (error) {
+      console.error(error);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '작동 중 오류가 발생했습니다.', ephemeral: true });
+      }
     }
   }
 });

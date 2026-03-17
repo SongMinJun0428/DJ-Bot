@@ -14,7 +14,7 @@ module.exports = {
     try {
       // Create channel
       const channel = await interaction.guild.channels.create({
-        name: 'alo-음악채널',
+        name: 'DJ 봇 음악 채널',
         type: ChannelType.GuildText,
         topic: '알로항 스타일 음악 전용 채널 | 여기에 노래 제목을 입력하세요.'
       });

@@ -46,7 +46,7 @@ module.exports = {
       .addComponents(
         new ButtonBuilder().setCustomId('btn_help').setLabel('📁 명령어 보기').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setURL('https://discord.com').setLabel('🔗 공식 서버').setStyle(ButtonStyle.Link),
-        new ButtonBuilder().setCustomId('btn_search').setLabel('🔍 음악 검색하기').setStyle(ButtonStyle.Success)
+        new ButtonBuilder().setCustomId('btn_search').setLabel('🔍 제목(주소) 입력하여 재생').setStyle(ButtonStyle.Success)
       );
 
     return [row1, row2];
