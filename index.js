@@ -53,6 +53,16 @@ client.once(Events.ClientReady, async c => {
   }
 });
 
+// [TRACE] Deep gateway listener to see why signalling hangs
+client.on('raw', packet => {
+  if (packet.t === 'VOICE_SERVER_UPDATE') {
+    console.log(`[GATEWAY TRACE] Received VOICE_SERVER_UPDATE for guild ${packet.d.guild_id}`);
+  }
+  if (packet.t === 'VOICE_STATE_UPDATE' && packet.d.user_id === client.user.id) {
+    console.log(`[GATEWAY TRACE] Received VOICE_STATE_UPDATE for session ${packet.d.session_id}`);
+  }
+});
+
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isStringSelectMenu()) return;
 

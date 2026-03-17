@@ -28,14 +28,14 @@ module.exports = {
     if (!query) {
       const msg = '검색어 또는 파일을 입력해주세요!';
       if (fromChannel) return interaction.channel.send(msg);
-      return interaction.reply({ content: msg, ephemeral: true });
+      return interaction.reply({ content: msg, flags: [MessageFlags.Ephemeral] });
     }
 
     const member = interaction.member;
     if (!member.voice.channel) {
       const msg = '먼저 음성 채널에 입장해주세요!';
       if (fromChannel) return interaction.channel.send(msg);
-      return interaction.reply({ content: msg, ephemeral: true });
+      return interaction.reply({ content: msg, flags: [MessageFlags.Ephemeral] });
     }
 
     try {
