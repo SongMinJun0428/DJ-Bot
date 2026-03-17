@@ -133,54 +133,70 @@ class MusicPlayer {
   }
 
   async join(voiceChannel, textChannel) {
-    const queue = await this.createQueue(voiceChannel.guild, textChannel, voiceChannel);
+    const guildId = voiceChannel.guild.id;
     
-    console.log(`Joining voice channel: ${voiceChannel.name} (${voiceChannel.id})`);
+    // Cleanup existing connection if any
+    let queue = this.queues.get(guildId);
+    if (queue && queue.connection) {
+        console.log('Cleaning up existing voice connection for new join request.');
+        queue.connection.destroy();
+    }
+
+    queue = await this.createQueue(voiceChannel.guild, textChannel, voiceChannel);
+    console.log(`Joining voice channel: ${voiceChannel.name} (${voiceChannel.id}) in guild ${guildId}`);
     
     const connection = joinVoiceChannel({
       channelId: voiceChannel.id,
-      guildId: voiceChannel.guild.id,
+      guildId: guildId,
       adapterCreator: voiceChannel.guild.voiceAdapterCreator,
       selfDeaf: true,
-      selfMute: false
+      selfMute: false,
+      debug: false // Set to true if further debugging is needed
     });
 
     queue.connection = connection;
 
-    // Listen to state changes for debugging
+    // Verbose logging for Railway debugging
     connection.on('stateChange', (oldState, newState) => {
-      console.log(`Voice connection: ${oldState.status} -> ${newState.status}`);
+      console.log(`[VOICE CONNECTION] State changed: ${oldState.status} -> ${newState.status}`);
+      if (newState.status === VoiceConnectionStatus.Ready) {
+          console.log('✅ Connection is READY and authenticated.');
+      }
+    });
+
+    connection.on('error', (error) => {
+        console.error('[VOICE CONNECTION] Fatal error:', error);
+        connection.destroy();
+        this.queues.delete(guildId);
     });
 
     try {
-      console.log('Waiting up to 30s for voice connection to be READY...');
-      // Some environments need more time or fail the first check
+      console.log('Attempting to wait for READY state (max 30s)...');
       await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
-      console.log('Voice connection is READY and encrypted.');
     } catch (error) {
-      console.error('Voice connection failed to reach READY state within 30s:', error);
+      console.error('❌ Voice connection failed to READY:', error.message);
       
-      // Check if it's just stuck in Signalling/Connecting
+      // Attempting to diagnose why it failed
+      console.log(`Last status: ${connection.state.status}`);
+      
       if (connection.state.status !== VoiceConnectionStatus.Ready) {
-        console.log('Force destroying connection due to transition failure.');
         connection.destroy();
-        this.queues.delete(voiceChannel.guild.id);
-        throw new Error('음성 채널 연결 시간에 초과되었습니다. (봇 권한이나 서버 네트워킹 문제)');
+        this.queues.delete(guildId);
+        throw new Error('음성 채널 연결에 실패했습니다. (서버 네트워크 또는 봇 권한 문제)');
       }
     }
 
     connection.on(VoiceConnectionStatus.Disconnected, async () => {
       try {
-        console.log('Voice connection disconnected, attempting to reconnect...');
+        console.log('Voice disconnected. Attempting automatic reconnection...');
         await Promise.race([
           entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
           entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
         ]);
-        console.log('Reconnecting...');
       } catch (e) {
-        console.log('Auto-reconnect failed, destroying connection.');
+        console.log('Unable to reconnect, cleaning up.');
         connection.destroy();
-        this.queues.delete(voiceChannel.guild.id);
+        this.queues.delete(guildId);
       }
     });
   }
