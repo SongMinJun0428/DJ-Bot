@@ -56,15 +56,15 @@ module.exports = {
                 isLocal: false
             };
         } else {
-            console.log(`[v3.1.1] Fetching video info for: ${query}`);
+            console.log(`[v3.1.2] Fetching video info for: ${query}`);
             const videoInfo = await play.video_info(query).catch(err => {
-              console.error('[v3.1.1] Video Info Error:', err.message);
+              console.error('[v3.1.2] Video Info Error:', err.message);
               return null;
             });
 
             if (!videoInfo) {
               const errMsg = '❌ 유효하지 않은 주소거나 유튜브 로드 실패.';
-              return fromChannel ? interaction.channel.send(errMsg) : interaction.followUp(errMsg);
+              return fromChannel ? interaction.channel.send(errMsg) : interaction.editReply(errMsg);
             }
 
             song = {
@@ -76,13 +76,17 @@ module.exports = {
                 isLocal: false
             };
         }
-        await this.addAndPlay(interaction, song, fromChannel);
+        const playResult = await this.addAndPlay(interaction, song, fromChannel);
+        if (!fromChannel && interaction.deferred) {
+            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v3.1.2)`;
+            await interaction.editReply({ content }).catch(() => {});
+        }
       } else {
-        console.log(`[v3.1.1] Searching for: ${query}`);
+        console.log(`[v3.1.2] Searching for: ${query}`);
         const searchResults = await play.search(query, { limit: 10 });
         if (searchResults.length === 0) {
             const msg = '검색 결과가 없습니다.';
-            return fromChannel ? interaction.channel.send(msg) : interaction.followUp(msg);
+            return fromChannel ? interaction.channel.send(msg) : interaction.editReply(msg);
         }
 
         // AUTO-PLAY for dedicated channel
@@ -110,7 +114,7 @@ module.exports = {
           })));
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
-        const response = await interaction.followUp({ content: '재생할 노래를 선택해주세요:', components: [row] });
+        const response = await interaction.editReply({ content: '재생할 노래를 선택해주세요:', components: [row] });
 
         const filter = i => i.customId === 'select_song' && i.user.id === member.id;
         try {
@@ -125,23 +129,20 @@ module.exports = {
             isLocal: false
           };
           await confirmation.update({ content: `✅ **${song.title}** 선택됨!`, components: [] });
-          await this.addAndPlay(interaction, song, false);
+          const playResult = await this.addAndPlay(interaction, song, false);
+          if (playResult && playResult.status === 'WAITING') {
+              await interaction.followUp({ content: playResult.message, ephemeral: true }).catch(() => {});
+          }
         } catch (e) {
-          console.error('[v3.1.1] Selection timeout or error:', e);
+          console.error('[v3.1.2] Selection timeout or error:', e);
           interaction.editReply({ content: '선택 시간이 초과되었습니다.', components: [] }).catch(() => {});
         }
       }
-      
-      // Resolve interaction
-      if (!fromChannel && interaction.deferred) {
-          await interaction.followUp({ content: '🎵 곡 처리가 시작되었습니다.', ephemeral: true }).catch(() => {});
-      }
-
     } catch (e) {
-      console.error('[v3.1.1] Play command Error:', e);
-      const errMsg = '❌ 재생 중 오류가 발생했습니다. (봇 권한 또는 네트워크 확인 요망)';
+      console.error('[v3.1.2] Play command Error:', e);
+      const errMsg = '❌ 재생 중 오류가 발생했습니다.';
       if (fromChannel) interaction.channel.send(errMsg);
-      else if (interaction.deferred) interaction.followUp(errMsg).catch(() => {});
+      else if (interaction.deferred) interaction.editReply(errMsg).catch(() => {});
       else interaction.reply(errMsg).catch(() => {});
     }
   },

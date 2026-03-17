@@ -45,7 +45,7 @@ class LavalinkManager {
   constructor(client) {
     this.client = client;
     
-    console.log('[v3.1.1] Starting Lavalink initialization...');
+    console.log('[v3.1.2] Starting Lavalink initialization...');
     
     // Kazagumo v3 wraps Shoukaku v4 internally when initialized this way
     this.kazagumo = new Kazagumo({
@@ -56,17 +56,17 @@ class LavalinkManager {
       }
     }, new Connectors.DiscordJS(client), Nodes);
 
-    console.log(`[v3.1.1] Kazagumo instance created. Connecting to ${Nodes.length} nodes...`);
+    console.log(`[v3.1.2] Kazagumo instance created. Connecting to ${Nodes.length} nodes: ${Nodes.map(n => n.name).join(', ')}`);
 
     // Node Event Logs
-    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v3.1.1] Node "${name}" is READY. (Audio Bypass Active)`));
-    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v3.1.1] Node "${name}" error:`, error));
+    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v3.1.2] Node "${name}" is READY. (Audio Bypass Active)`));
+    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v3.1.2] Node "${name}" error:`, error));
     this.kazagumo.shoukaku.on('debug', (name, info) => {
-        console.log(`[v3.1.1 DEBUG] Node "${name}": ${info}`);
+        console.log(`[v3.1.2 DEBUG] Node "${name}": ${info}`);
     });
     
     this.kazagumo.on('playerStart', (player, track) => {
-        console.log(`[v3.1.1 AUDIO] Playing: ${track.title}`);
+        console.log(`[v3.1.2 AUDIO] Playing: ${track.title}`);
         const channel = client.channels.cache.get(player.textId);
         if (channel) {
             const song = {
@@ -83,13 +83,13 @@ class LavalinkManager {
     });
 
     this.kazagumo.on('playerEnd', (player) => {
-        console.log('[v3.1.1 AUDIO] Track ended.');
+        console.log('[v3.1.2 AUDIO] Track ended.');
     });
 
     this.kazagumo.on('playerEmpty', (player) => {
-        console.log('[v3.1.1 AUDIO] Queue empty, leaving channel.');
+        console.log('[v3.1.2 AUDIO] Queue empty, leaving channel.');
         const channel = client.channels.cache.get(player.textId);
-        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v3.1.1)');
+        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v3.1.2)');
         player.destroy();
     });
   }
