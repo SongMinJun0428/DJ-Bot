@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, Events, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, Events, REST, Routes, MessageFlags } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const player = require('./src/music/Player');
@@ -10,7 +10,9 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences
   ]
 });
 
@@ -31,13 +33,20 @@ for (const file of commandFiles) {
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
+  console.log('--- [BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
-  console.log(`Enabled Intents: ${Object.keys(GatewayIntentBits).filter(k => (client.options.intents & GatewayIntentBits[k]))}`);
+  
+  // CRITICAL INTENT CHECK
+  const enabledIntents = Object.keys(GatewayIntentBits).filter(k => (client.options.intents & GatewayIntentBits[k]));
+  console.log(`[ENABLED INTENTS] ${enabledIntents.join(', ')}`);
+  
+  if (!enabledIntents.includes('GuildVoiceStates')) {
+      console.error('❌ CRITICAL ERROR: GuildVoiceStates intent is MISSING. Voice connection will never work!');
+  }
+  console.log('--------------------------------');
+
   try {
-    await rest.put(
-      Routes.applicationCommands(c.user.id),
-      { body: commands },
-    );
+    await rest.put(Routes.applicationCommands(c.user.id), { body: commands });
     console.log('Successfully registered application commands.');
   } catch (error) {
     console.error(error);
@@ -54,10 +63,11 @@ client.on(Events.InteractionCreate, async interaction => {
       await command.execute(interaction);
     } catch (error) {
       console.error('Command Execution Error:', error);
+      const errorMsg = { content: '오류가 발생했습니다.', flags: [MessageFlags.Ephemeral] };
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: '오류가 발생했습니다.', ephemeral: true });
+        await interaction.reply(errorMsg);
       } else if (interaction.deferred) {
-        await interaction.editReply({ content: '오류가 발생했습니다.' });
+        await interaction.editReply(errorMsg);
       }
     }
   }
@@ -67,10 +77,10 @@ client.on(Events.InteractionCreate, async interaction => {
     
     if (interaction.customId.startsWith('btn_')) {
       if (!interaction.member.voice.channel) {
-        return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', ephemeral: true });
+        return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', flags: [MessageFlags.Ephemeral] });
       }
 
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
       const playCmd = client.commands.get('play');
       
       let query = '';
@@ -80,7 +90,7 @@ client.on(Events.InteractionCreate, async interaction => {
         case 'btn_recent': query = '최신곡'; break;
         case 'btn_madmovie': query = '매드무비 브금'; break;
         case 'btn_search':
-          return interaction.editReply({ content: '음악 채널에 노래 제목이나 주소(또는 파일 업로드)를 입력하시면 바로 재생됩니다!' });
+          return interaction.editReply({ content: '음악 채널에 노래 제목이나 주소를 보내시면 바로 재생됩니다!' });
         case 'btn_help':
           return interaction.editReply({ content: '명령어: `/play`, `/skip`, `/stop`, `/setup`' });
       }
@@ -92,7 +102,7 @@ client.on(Events.InteractionCreate, async interaction => {
           channel: interaction.channel,
           guildId: interaction.guildId,
           options: { 
-            getString: (key) => key === 'query' ? query : null,
+            getString: () => query,
             getAttachment: () => null 
           },
           deferReply: () => Promise.resolve(),
@@ -108,33 +118,26 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     // 2. Player control buttons (require an active queue)
-    if (!queue) return interaction.reply({ content: '현재 재생 중인 음악이 없습니다.', ephemeral: true });
+    if (!queue) return interaction.reply({ content: '현재 재생 중인 음악이 없습니다.', flags: [MessageFlags.Ephemeral] });
 
     try {
       switch (interaction.customId) {
         case 'player_pause':
           if (queue.player.state.status === 'paused') {
             queue.player.unpause();
-            await interaction.reply({ content: '▶️ 재개됨', ephemeral: true });
+            await interaction.reply({ content: '▶️ 재개림', flags: [MessageFlags.Ephemeral] });
           } else {
             queue.player.pause();
-            await interaction.reply({ content: '⏸️ 일시정지됨', ephemeral: true });
+            await interaction.reply({ content: '⏸️ 일시정지됨', flags: [MessageFlags.Ephemeral] });
           }
           break;
         case 'player_skip':
           player.onSongEnd(interaction.guildId);
-          await interaction.reply({ content: '⏭️ 건너뜜', ephemeral: true });
+          await interaction.reply({ content: '⏭️ 건너뜀', flags: [MessageFlags.Ephemeral] });
           break;
         case 'player_stop':
-          queue.connection.destroy();
+          if (queue.connection) queue.connection.destroy();
           player.queues.delete(interaction.guildId);
-          await interaction.reply({ content: '⏹️ 정지됨', ephemeral: true });
-          break;
-      }
-    } catch (error) {
-      console.error(error);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: '작동 중 오류가 발생했습니다.', ephemeral: true });
       }
     }
   }
