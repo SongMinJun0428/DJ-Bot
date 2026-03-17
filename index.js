@@ -32,7 +32,7 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log(`Ready! Logged in as ${c.user.tag}`);
-  
+  console.log(`Enabled Intents: ${Object.keys(GatewayIntentBits).filter(k => (client.options.intents & GatewayIntentBits[k]))}`);
   try {
     await rest.put(
       Routes.applicationCommands(c.user.id),

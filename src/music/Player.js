@@ -173,21 +173,26 @@ class MusicPlayer {
     });
 
     try {
-      console.log('Handshaking with Discord Gateway... (Waiting up to 30s)');
-      await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+      console.log('Handshaking with Discord Gateway... (Attempt 1)');
+      await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
     } catch (error) {
-      console.error('❌ Connection Timeout:', error.message);
-      console.log(`Final Condition: ${connection.state.status}`);
-      
-      if (connection.state.status === VoiceConnectionStatus.Signalling) {
-          console.error('STUCK AT SIGNALLING: Check Gateway Intents (Voice State) and Server Permissions.');
-      }
+      console.warn('First handshake attempt failed, retrying once more...');
+      try {
+          await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+      } catch (retryError) {
+          console.error('❌ Connection Timeout after retries.');
+          console.log(`Final Condition: ${connection.state.status}`);
+          
+          if (connection.state.status === VoiceConnectionStatus.Signalling) {
+              console.error('[CRITICAL] Stuck at SIGNALLING. This is almost always caused by MISSING INTENTS in the Discord Developer Portal.');
+          }
 
-      if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
-        connection.destroy();
+          if (connection.state.status !== VoiceConnectionStatus.Destroyed) {
+            connection.destroy();
+          }
+          this.queues.delete(guildId);
+          throw new Error('음성 연결 정체: 디스코드 개발자 포털에서 "Priveleged Gateway Intents" 3개를 모두 켰는지 확인해 주세요.');
       }
-      this.queues.delete(guildId);
-      throw new Error('음성 연결 정체: 봇의 "음성 상태" 권한이 켜져 있는지 확인해 주세요.');
     }
 
     connection.on(VoiceConnectionStatus.Disconnected, async () => {
