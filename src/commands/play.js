@@ -19,8 +19,11 @@ module.exports = {
         .setRequired(false)),
   async execute(interaction, fromChannel = false) {
     const attachment = interaction.options ? (interaction.options.getAttachment ? interaction.options.getAttachment('file') : null) : null;
-    let query = interaction.options ? (interaction.options.getString('query') || interaction.options.getString()) : null;
+    let query = interaction.options ? (interaction.options.getString('query') || (typeof interaction.options.getString === 'function' ? interaction.options.getString('query') : interaction.options.getString)) : null;
     
+    // Support for interaction placeholders (text channel messages)
+    if (!query && !attachment && interaction.content) query = interaction.content;
+
     if (attachment && !query) {
       query = attachment.url;
     }
@@ -28,14 +31,14 @@ module.exports = {
     if (!query) {
       const msg = '검색어 또는 파일을 입력해주세요!';
       if (fromChannel) return interaction.channel.send(msg);
-      return interaction.reply({ content: msg, flags: [MessageFlags.Ephemeral] });
+      return interaction.reply({ content: msg, ephemeral: true });
     }
 
     const member = interaction.member;
     if (!member.voice.channel) {
       const msg = '먼저 음성 채널에 입장해주세요!';
       if (fromChannel) return interaction.channel.send(msg);
-      return interaction.reply({ content: msg, flags: [MessageFlags.Ephemeral] });
+      return interaction.reply({ content: msg, ephemeral: true });
     }
 
     try {
@@ -53,14 +56,14 @@ module.exports = {
                 isLocal: false
             };
         } else {
-            console.log(`Fetching video info for: ${query}`);
+            console.log(`[v3.1.1] Fetching video info for: ${query}`);
             const videoInfo = await play.video_info(query).catch(err => {
-              console.error('Video Info Error:', err.message);
+              console.error('[v3.1.1] Video Info Error:', err.message);
               return null;
             });
 
             if (!videoInfo) {
-              const errMsg = '❌ 유효하지 않은 주소거나 유튜브 로드 실패. (지역 제한 또는 성인 인증 필요할 수 있음)';
+              const errMsg = '❌ 유효하지 않은 주소거나 유튜브 로드 실패.';
               return fromChannel ? interaction.channel.send(errMsg) : interaction.followUp(errMsg);
             }
 
@@ -75,13 +78,28 @@ module.exports = {
         }
         await this.addAndPlay(interaction, song, fromChannel);
       } else {
-        console.log(`Searching for: ${query}`);
+        console.log(`[v3.1.1] Searching for: ${query}`);
         const searchResults = await play.search(query, { limit: 10 });
         if (searchResults.length === 0) {
             const msg = '검색 결과가 없습니다.';
             return fromChannel ? interaction.channel.send(msg) : interaction.followUp(msg);
         }
 
+        // AUTO-PLAY for dedicated channel
+        if (fromChannel) {
+            const selectedVideo = searchResults[0];
+            const song = {
+              title: selectedVideo.title,
+              url: selectedVideo.url,
+              thumbnail: selectedVideo.thumbnails[0].url,
+              durationRaw: selectedVideo.durationRaw,
+              author: selectedVideo.channel ? (selectedVideo.channel.name || 'Youtube') : 'Youtube',
+              isLocal: false
+            };
+            return await this.addAndPlay(interaction, song, true);
+        }
+
+        // Selection Menu for Slash Commands
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId('select_song')
           .setPlaceholder('노래를 선택하세요 (상위 10개)')
@@ -92,9 +110,7 @@ module.exports = {
           })));
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
-        const response = fromChannel 
-            ? await interaction.channel.send({ content: `🔍 **${query}** 검색 결과:`, components: [row] })
-            : await interaction.followUp({ content: '재생할 노래를 선택해주세요:', components: [row] });
+        const response = await interaction.followUp({ content: '재생할 노래를 선택해주세요:', components: [row] });
 
         const filter = i => i.customId === 'select_song' && i.user.id === member.id;
         try {
@@ -109,19 +125,24 @@ module.exports = {
             isLocal: false
           };
           await confirmation.update({ content: `✅ **${song.title}** 선택됨!`, components: [] });
-          await this.addAndPlay(interaction, song, fromChannel);
+          await this.addAndPlay(interaction, song, false);
         } catch (e) {
-          console.error('Selection timeout or error:', e);
-          if (fromChannel) response.edit({ content: '선택 시간이 초과되었습니다.', components: [] }).catch(() => {});
-          else interaction.editReply({ content: '선택 시간이 초과되었습니다.', components: [] }).catch(() => {});
+          console.error('[v3.1.1] Selection timeout or error:', e);
+          interaction.editReply({ content: '선택 시간이 초과되었습니다.', components: [] }).catch(() => {});
         }
       }
+      
+      // Resolve interaction
+      if (!fromChannel && interaction.deferred) {
+          await interaction.followUp({ content: '🎵 곡 처리가 시작되었습니다.', ephemeral: true }).catch(() => {});
+      }
+
     } catch (e) {
-      console.error('Play command Error:', e);
+      console.error('[v3.1.1] Play command Error:', e);
       const errMsg = '❌ 재생 중 오류가 발생했습니다. (봇 권한 또는 네트워크 확인 요망)';
       if (fromChannel) interaction.channel.send(errMsg);
-      else if (interaction.deferred) interaction.followUp(errMsg);
-      else interaction.reply(errMsg);
+      else if (interaction.deferred) interaction.followUp(errMsg).catch(() => {});
+      else interaction.reply(errMsg).catch(() => {});
     }
   },
 
@@ -131,8 +152,6 @@ module.exports = {
       const msg = '먼저 음성 채널에 입장해주세요!';
       return fromChannel ? interaction.channel.send(msg) : interaction.channel.send(msg);
     }
-
-    // Lavalink handles everything with a single call to player.play
     await musicPlayer.play(interaction.guildId, song, voiceChannel, interaction.channel);
   }
 };

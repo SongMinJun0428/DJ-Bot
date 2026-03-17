@@ -4,32 +4,38 @@ const embeds = require('../utils/embeds');
 
 const Nodes = [
   {
-    name: 'Serenetia (Public)',
-    url: 'lavalinkv4.serenetia.com:443',
-    auth: 'https://seretia.link/discord',
-    secure: true
-  },
-  {
-    name: 'LexisHost (Public)',
+    name: 'LexisHost (v4)',
     url: 'lavalink.lexis.host:443',
     auth: 'lexishostlavalink',
     secure: true
   },
   {
-    name: 'Jirayu (Public)',
+    name: 'Serenetia (v4)',
+    url: 'lavalinkv4.serenetia.com:443',
+    auth: 'https://seretia.link/discord',
+    secure: true
+  },
+  {
+    name: 'Jirayu (v4)',
     url: 'lavalink.jirayu.net:443',
     auth: 'youshallnotpass',
     secure: true
   },
   {
-    name: 'Muzykant (Public)',
+    name: 'Muzykant (v4)',
     url: 'lavalink_v4.muzykant.xyz:443',
     auth: 'https://discord.gg/v6sdrD9kPh',
     secure: true
   },
   {
-    name: 'Lavalink.pw (Public)',
+    name: 'Lavalink.pw (v4)',
     url: 'v4.lavalink.pw:443',
+    auth: 'youshallnotpass',
+    secure: true
+  },
+  {
+    name: 'Shadow (v4)',
+    url: 'lavalink.shadowit.ro:443',
     auth: 'youshallnotpass',
     secure: true
   }
@@ -38,6 +44,8 @@ const Nodes = [
 class LavalinkManager {
   constructor(client) {
     this.client = client;
+    
+    console.log('[v3.1.1] Starting Lavalink initialization...');
     
     // Kazagumo v3 wraps Shoukaku v4 internally when initialized this way
     this.kazagumo = new Kazagumo({
@@ -48,15 +56,17 @@ class LavalinkManager {
       }
     }, new Connectors.DiscordJS(client), Nodes);
 
+    console.log(`[v3.1.1] Kazagumo instance created. Connecting to ${Nodes.length} nodes...`);
+
     // Node Event Logs
-    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v3.0.8] Node "${name}" is READY. (Audio Bypass Active)`));
-    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v3.0.8] Node "${name}" error:`, error));
+    this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v3.1.1] Node "${name}" is READY. (Audio Bypass Active)`));
+    this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v3.1.1] Node "${name}" error:`, error));
     this.kazagumo.shoukaku.on('debug', (name, info) => {
-        if (info.includes('Ready')) console.log(`[v3.0.8 DEBUG] Node "${name}": ${info}`);
+        console.log(`[v3.1.1 DEBUG] Node "${name}": ${info}`);
     });
     
     this.kazagumo.on('playerStart', (player, track) => {
-        console.log(`[v3.0.8 AUDIO] Playing: ${track.title}`);
+        console.log(`[v3.1.1 AUDIO] Playing: ${track.title}`);
         const channel = client.channels.cache.get(player.textId);
         if (channel) {
             const song = {
@@ -73,13 +83,13 @@ class LavalinkManager {
     });
 
     this.kazagumo.on('playerEnd', (player) => {
-        console.log('[v2.9.0 AUDIO] Track ended.');
+        console.log('[v3.1.1 AUDIO] Track ended.');
     });
 
     this.kazagumo.on('playerEmpty', (player) => {
-        console.log('[v2.9.0 AUDIO] Queue empty, leaving channel.');
+        console.log('[v3.1.1 AUDIO] Queue empty, leaving channel.');
         const channel = client.channels.cache.get(player.textId);
-        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다.');
+        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v3.1.1)');
         player.destroy();
     });
   }

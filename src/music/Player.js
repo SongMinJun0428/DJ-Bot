@@ -18,15 +18,18 @@ class MusicPlayer {
   async play(guildId, song, voiceChannel, textChannel) {
     try {
       if (!this.manager || !this.manager.shoukaku) {
-        return textChannel.send('⏳ 오디오 엔진 초기화 중입니다. 3초 뒤에 다시 시도해 주세요. (v3.0.4)');
+        return textChannel.send('⏳ 오디오 엔진 초기화 중입니다. 5초 뒤에 다시 시도해 주세요. (v3.1.1)');
       }
 
       // Check for node readiness
       const nodes = this.manager.shoukaku.nodes;
-      const readyNodes = nodes ? Array.from(nodes.values()).filter(n => n.state === 1) : []; 
+      const nodesArray = nodes ? Array.from(nodes.values()) : [];
+      const readyNodes = nodesArray.filter(n => n.state === 1); 
       
-      if (!readyNodes || readyNodes.length === 0) {
-        return textChannel.send('🛰️ 오디오 서버(Lavalink) 연결 중입니다. 잠시만 기다려 주세요... (v3.0.8)');
+      console.log(`[v3.1.1] Audio attempt for guild ${guildId}. Total Nodes: ${nodesArray.length}, Ready: ${readyNodes.length}`);
+
+      if (readyNodes.length === 0) {
+        return textChannel.send(`🛰️ 오디오 서버 연결 대기 중... (현재 연결된 서버: ${readyNodes.length}/${nodesArray.length}) (v3.1.1)\n> 로그에 "Node is READY"가 뜰 때까지 잠시만 기다려 주세요.`);
       }
 
       let player = this.manager.players.get(guildId);
@@ -38,7 +41,7 @@ class MusicPlayer {
           textId: textChannel.id,
           deaf: true
         });
-        console.log(`[v3.0.8] Created new Lavalink player for guild ${guildId}`);
+        console.log(`[v3.1.1] Created new Lavalink player for guild ${guildId}`);
       }
 
       const result = await this.manager.search(song.url || song.title, { requester: song.requester });
@@ -60,13 +63,13 @@ class MusicPlayer {
       if (!player.playing && !player.paused) await player.play();
 
     } catch (e) {
-      console.error('[v3.0.8] Play Error:', e);
+      console.error('[v3.1.1] Play Error:', e);
       textChannel.send('❌ 재생 중 오류가 발생했습니다. (Lavalink 노드 서버 확인 요망)');
     }
   }
 
   async join(voiceChannel, textChannel) {
-    console.log(`[v3.0.8] Preparing Lavalink join for ${voiceChannel.name}`);
+    console.log(`[v3.1.1] Preparing Lavalink join for ${voiceChannel.name}`);
     return true;
   }
 }
