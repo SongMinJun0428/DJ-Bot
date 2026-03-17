@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const db = require('../db/database');
 const musicPlayer = require('../music/Player');
 
@@ -40,13 +40,13 @@ module.exports = {
       if (result) {
         await interaction.reply({ content: `✅ 플레이리스트 **${name}**이(가) 생성되었습니다.` });
       } else {
-        await interaction.reply({ content: `❌ 이미 존재하는 이름이거나 생성에 실패했습니다.`, ephemeral: true });
+        await interaction.reply({ content: `❌ 이미 존재하는 이름이거나 생성에 실패했습니다.`, flags: [MessageFlags.Ephemeral] });
       }
     } else if (subcommand === 'add') {
       const name = interaction.options.getString('name');
       const queue = musicPlayer.getQueue(interaction.guildId);
       if (!queue || queue.songs.length === 0) {
-        return interaction.reply({ content: '현재 재생 중인 곡이 없습니다.', ephemeral: true });
+        return interaction.reply({ content: '현재 재생 중인 곡이 없습니다.', flags: [MessageFlags.Ephemeral] });
       }
 
       const song = queue.songs[0];
@@ -54,7 +54,7 @@ module.exports = {
       const playlist = playlists.find(p => p.name === name);
 
       if (!playlist) {
-        return interaction.reply({ content: `❌ 플레이리스트 **${name}**을(를) 찾을 수 없습니다.`, ephemeral: true });
+        return interaction.reply({ content: `❌ 플레이리스트 **${name}**을(를) 찾을 수 없습니다.`, flags: [MessageFlags.Ephemeral] });
       }
 
       db.addSongToPlaylist(playlist.id, song.title, song.url);
@@ -65,16 +65,16 @@ module.exports = {
       const playlist = playlists.find(p => p.name === name);
 
       if (!playlist) {
-        return interaction.reply({ content: `❌ 플레이리스트 **${name}**을(를) 찾을 수 없습니다.`, ephemeral: true });
+        return interaction.reply({ content: `❌ 플레이리스트 **${name}**을(를) 찾을 수 없습니다.`, flags: [MessageFlags.Ephemeral] });
       }
 
       const songs = db.getPlaylistSongs(playlist.id);
       if (songs.length === 0) {
-        return interaction.reply({ content: '플레이리스트가 비어 있습니다.', ephemeral: true });
+        return interaction.reply({ content: '플레이리스트가 비어 있습니다.', flags: [MessageFlags.Ephemeral] });
       }
 
       if (!interaction.member.voice.channel) {
-        return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', ephemeral: true });
+        return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', flags: [MessageFlags.Ephemeral] });
       }
 
       let queue = musicPlayer.getQueue(interaction.guildId);
@@ -102,7 +102,7 @@ module.exports = {
     } else if (subcommand === 'list') {
       const playlists = db.getPlaylists(userId);
       if (playlists.length === 0) {
-        return interaction.reply({ content: '생성된 플레이리스트가 없습니다.', ephemeral: true });
+        return interaction.reply({ content: '생성된 플레이리스트가 없습니다.', flags: [MessageFlags.Ephemeral] });
       }
 
       const embed = new EmbedBuilder()

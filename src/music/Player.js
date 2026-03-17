@@ -154,6 +154,11 @@ class MusicPlayer {
       group: 'dj-bot-default' // Group can help isolate connection states
     });
 
+    // UDP Debug listener for Railway network analysis
+    connection.on('debug', message => {
+        if (message.includes('UDP')) console.log(`[UDP DEBUG] ${message}`);
+    });
+
     queue.connection = connection;
 
     // Verbose logging for Railway debugging
@@ -184,7 +189,7 @@ class MusicPlayer {
           console.log(`Final Condition: ${connection.state.status}`);
           
           if (connection.state.status === VoiceConnectionStatus.Signalling) {
-              console.error('[CRITICAL] Stuck at SIGNALLING. This is almost always caused by MISSING INTENTS in the Discord Developer Portal.');
+              console.error('[CRITICAL] Stuck at SIGNALLING. Gateway intents are working, but UDP handshake failed. This is likely a Firewall/Network (Railway UDP) issue.');
           }
 
           if (connection.state.status !== VoiceConnectionStatus.Destroyed) {

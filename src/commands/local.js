@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const musicPlayer = require('../music/Player');
 const path = require('path');
 const fs = require('fs');
@@ -18,12 +18,12 @@ module.exports = {
     const member = interaction.member;
 
     if (!member.voice.channel) {
-      return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', ephemeral: true });
+      return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', flags: [MessageFlags.Ephemeral] });
     }
 
     const filePath = path.join(__dirname, '..', '..', 'music', filename);
     if (!fs.existsSync(filePath)) {
-      return interaction.reply({ content: `❌ 파일을 찾을 수 없습니다: ${filename}`, ephemeral: true });
+      return interaction.reply({ content: `❌ 파일을 찾을 수 없습니다: ${filename}`, flags: [MessageFlags.Ephemeral] });
     }
 
     await interaction.deferReply();
