@@ -135,40 +135,53 @@ class MusicPlayer {
   async join(voiceChannel, textChannel) {
     const queue = await this.createQueue(voiceChannel.guild, textChannel, voiceChannel);
     
+    console.log(`Joining voice channel: ${voiceChannel.name} (${voiceChannel.id})`);
+    
     const connection = joinVoiceChannel({
       channelId: voiceChannel.id,
       guildId: voiceChannel.guild.id,
       adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+      selfDeaf: true,
+      selfMute: false
     });
 
     queue.connection = connection;
 
+    // Listen to state changes for debugging
+    connection.on('stateChange', (oldState, newState) => {
+      console.log(`Voice connection: ${oldState.status} -> ${newState.status}`);
+    });
+
     try {
-      console.log('Waiting for voice connection to be ready...');
-      await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-      console.log('Voice connection is READY.');
+      console.log('Waiting up to 30s for voice connection to be READY...');
+      // Some environments need more time or fail the first check
+      await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+      console.log('Voice connection is READY and encrypted.');
     } catch (error) {
-      console.error('Voice connection failed to become ready:', error);
-      connection.destroy();
-      this.queues.delete(voiceChannel.guild.id);
-      throw error;
+      console.error('Voice connection failed to reach READY state within 30s:', error);
+      
+      // Check if it's just stuck in Signalling/Connecting
+      if (connection.state.status !== VoiceConnectionStatus.Ready) {
+        console.log('Force destroying connection due to transition failure.');
+        connection.destroy();
+        this.queues.delete(voiceChannel.guild.id);
+        throw new Error('음성 채널 연결 시간에 초과되었습니다. (봇 권한이나 서버 네트워킹 문제)');
+      }
     }
 
     connection.on(VoiceConnectionStatus.Disconnected, async () => {
       try {
+        console.log('Voice connection disconnected, attempting to reconnect...');
         await Promise.race([
           entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
           entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
         ]);
+        console.log('Reconnecting...');
       } catch (e) {
-        console.log('Voice connection disconnected and failed to reconnect.');
+        console.log('Auto-reconnect failed, destroying connection.');
         connection.destroy();
         this.queues.delete(voiceChannel.guild.id);
       }
-    });
-
-    connection.on('stateChange', (oldState, newState) => {
-      console.log(`Voice connection: ${oldState.status} -> ${newState.status}`);
     });
   }
 }
