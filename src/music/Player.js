@@ -1,4 +1,4 @@
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
 const play = require('play-dl');
 const path = require('path');
 const fs = require('fs');
@@ -36,12 +36,12 @@ class MusicPlayer {
     });
 
     player.on('error', error => {
-      console.error(`Audio Player Error: ${error.message} with resource ${error.resource.metadata.title}`);
+      console.error(`Audio Player Error: ${error.message}`);
       this.onSongEnd(guild.id);
     });
 
     player.on('stateChange', (oldState, newState) => {
-      console.log(`Audio player transitioned from ${oldState.status} to ${newState.status}`);
+      console.log(`Audio player: ${oldState.status} -> ${newState.status}`);
     });
 
     return queue;
@@ -67,7 +67,7 @@ class MusicPlayer {
 
   async handleAutoplay(guildId) {
     const queue = this.queues.get(guildId);
-    if (!queue || queue.songs.length > 0) return;
+    if (!queue || !queue.lastUrl) return queue.playing = false;
 
     // We need the last played song's URL. For simplicity, let's assume we keep track or just stop.
     // In a real scenario, you'd store its URL. Let's add a placeholder for lastUrl in queue.
@@ -77,7 +77,7 @@ class MusicPlayer {
         queue.songs.push(nextSong);
         this.play(guildId, nextSong);
         if (queue.textChannel) {
-          queue.textChannel.send(`✨ **자동 추천 곡**을 재생합니다: **${nextSong.title}**`);
+          queue.textChannel.send(`✨ **자동 추천 곡**: ${nextSong.title}`);
         }
         return;
       }
@@ -88,18 +88,25 @@ class MusicPlayer {
 
   async play(guildId, song) {
     const queue = this.queues.get(guildId);
-    if (!song) {
-      queue.connection.destroy();
-      this.queues.delete(guildId);
-      return;
+    if (!song) { 
+      if (queue.connection) queue.connection.destroy();
+      this.queues.delete(guildId); 
+      return; 
     }
 
     try {
-      console.log(`Starting playback: ${song.title} (${song.url})`);
+      console.log(`Attempting to play: ${song.title}`);
       let resource;
+      // Direct file link detection (MP3, WAV, etc)
+      const isDirectFile = song.url.match(/\.(mp3|wav|ogg|flac|m4a)($|\?)/i);
+
       if (song.isLocal) {
         resource = createAudioResource(song.url);
+      } else if (isDirectFile) {
+        console.log('Detected direct audio link, playing via resource...');
+        resource = createAudioResource(song.url);
       } else {
+        console.log('Playing via play-dl stream...');
         const stream = await play.stream(song.url, {
             discordPlayerCompatibility: true
         });
@@ -117,7 +124,7 @@ class MusicPlayer {
         queue.textChannel.send({ embeds: [npEmbed], components: [controls] });
       }
     } catch (e) {
-      console.error('Playback execution error:', e);
+      console.error('Play execution error:', e);
       if (queue.textChannel) {
         queue.textChannel.send('❌ 재생 중 오류가 발생했습니다. (유튜브 차단 또는 스트림 오류)');
       }
@@ -127,19 +134,41 @@ class MusicPlayer {
 
   async join(voiceChannel, textChannel) {
     const queue = await this.createQueue(voiceChannel.guild, textChannel, voiceChannel);
-    queue.connection = joinVoiceChannel({
+    
+    const connection = joinVoiceChannel({
       channelId: voiceChannel.id,
       guildId: voiceChannel.guild.id,
       adapterCreator: voiceChannel.guild.voiceAdapterCreator,
     });
 
-    queue.connection.on(VoiceConnectionStatus.Disconnected, () => {
-      console.log('Voice connection disconnected.');
+    queue.connection = connection;
+
+    try {
+      console.log('Waiting for voice connection to be ready...');
+      await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+      console.log('Voice connection is READY.');
+    } catch (error) {
+      console.error('Voice connection failed to become ready:', error);
+      connection.destroy();
       this.queues.delete(voiceChannel.guild.id);
+      throw error;
+    }
+
+    connection.on(VoiceConnectionStatus.Disconnected, async () => {
+      try {
+        await Promise.race([
+          entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+          entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+        ]);
+      } catch (e) {
+        console.log('Voice connection disconnected and failed to reconnect.');
+        connection.destroy();
+        this.queues.delete(voiceChannel.guild.id);
+      }
     });
 
-    queue.connection.on('stateChange', (oldState, newState) => {
-      console.log(`Voice connection transitioned from ${oldState.status} to ${newState.status}`);
+    connection.on('stateChange', (oldState, newState) => {
+      console.log(`Voice connection: ${oldState.status} -> ${newState.status}`);
     });
   }
 }
