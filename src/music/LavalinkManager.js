@@ -1,5 +1,6 @@
 const { Shoukaku, Connectors } = require('shoukaku');
 const { Kazagumo, Plugins } = require('kazagumo');
+const embeds = require('../utils/embeds');
 
 const Nodes = [
   {
@@ -37,9 +38,21 @@ class LavalinkManager {
     this.kazagumo.shoukaku.on('ready', (name) => console.log(`[v2.9.0 LAVALINK] Node "${name}" is now connected. (TCP-UDP Bridge Active)`));
     this.kazagumo.shoukaku.on('error', (name, error) => console.error(`[v2.9.0 LAVALINK] Node "${name}" error:`, error));
     
-    // Player Events
     this.kazagumo.on('playerStart', (player, track) => {
         console.log(`[v2.9.0 AUDIO] Playing: ${track.title}`);
+        const channel = client.channels.cache.get(player.textId);
+        if (channel) {
+            const song = {
+                title: track.title,
+                url: track.uri,
+                thumbnail: track.thumbnail || 'https://i.imgur.com/vHdfyC7.png',
+                durationRaw: track.isStream ? 'LIVE' : new Date(track.length).toISOString().substr(11, 8),
+                author: track.author
+            };
+            const npEmbed = embeds.createNowPlayingEmbed(song);
+            const controls = embeds.createPlayerControlButtons();
+            channel.send({ embeds: [npEmbed], components: [controls] });
+        }
     });
 
     this.kazagumo.on('playerEnd', (player) => {
@@ -48,6 +61,8 @@ class LavalinkManager {
 
     this.kazagumo.on('playerEmpty', (player) => {
         console.log('[v2.9.0 AUDIO] Queue empty, leaving channel.');
+        const channel = client.channels.cache.get(player.textId);
+        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다.');
         player.destroy();
     });
   }

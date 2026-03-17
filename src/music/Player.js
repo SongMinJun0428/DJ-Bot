@@ -11,6 +11,10 @@ class MusicPlayer {
     this.manager = new manager(client).kazagumo;
   }
 
+  getQueue(guildId) {
+    return this.manager.players.get(guildId);
+  }
+
   async play(guildId, song, voiceChannel, textChannel) {
     try {
       let player = this.manager.players.get(guildId);
@@ -36,9 +40,7 @@ class MusicPlayer {
           textChannel.send(`🎵 **${result.playlistName}** (${result.tracks.length}곡)을 대기열에 추가했습니다.`);
       } else {
           player.queue.add(result.tracks[0]);
-          if (!player.playing && !player.paused) {
-              // First song handled by playerStart event
-          } else {
+          if (player.playing || player.paused) {
               textChannel.send(`🎵 **${result.tracks[0].title}** 곡이 대기열에 추가되었습니다.`);
           }
       }
@@ -52,14 +54,9 @@ class MusicPlayer {
   }
 
   async join(voiceChannel, textChannel) {
-    // Shoukaku handles joins automatically when creating a player
-    // This is now a stub for compatibility
     console.log(`[v2.9.0] Preparing Lavalink join for ${voiceChannel.name}`);
     return true;
   }
-}
-
-module.exports = new MusicPlayer();
 }
 
 module.exports = new MusicPlayer();

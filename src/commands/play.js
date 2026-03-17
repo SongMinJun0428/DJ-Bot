@@ -126,23 +126,13 @@ module.exports = {
   },
 
   async addAndPlay(interaction, song, fromChannel) {
-    let queue = musicPlayer.getQueue(interaction.guildId);
-
-    if (!queue) {
-      const voiceChannel = interaction.member.voice.channel;
-      if (!voiceChannel) {
-        return interaction.channel.send('음성 채널을 찾을 수 없습니다.');
-      }
-      await musicPlayer.join(voiceChannel, interaction.channel);
-      queue = musicPlayer.getQueue(interaction.guildId);
+    const voiceChannel = interaction.member.voice.channel;
+    if (!voiceChannel) {
+      const msg = '먼저 음성 채널에 입장해주세요!';
+      return fromChannel ? interaction.channel.send(msg) : interaction.channel.send(msg);
     }
 
-    queue.songs.push(song);
-
-    if (queue.songs.length === 1 && !queue.playing) {
-      musicPlayer.play(interaction.guildId, song);
-    } else {
-      interaction.channel.send(`🎵 **${song.title}** 곡이 대기열에 추가되었습니다.`);
-    }
+    // Lavalink handles everything with a single call to player.play
+    await musicPlayer.play(interaction.guildId, song, voiceChannel, interaction.channel);
   }
 };

@@ -34,9 +34,12 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v2.8.0 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v2.9.0 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
+  // Initialize Lavalink Audio Engine (v2.9.0)
+  player.init(client);
+
   // CRITICAL INTENT CHECK
   const enabledIntents = Object.keys(GatewayIntentBits).filter(k => (client.options.intents & GatewayIntentBits[k]));
   console.log(`[ENABLED INTENTS] ${enabledIntents.join(', ')}`);
@@ -134,21 +137,20 @@ client.on(Events.InteractionCreate, async interaction => {
     try {
       switch (interaction.customId) {
         case 'player_pause':
-          if (queue.player.state.status === 'paused') {
-            queue.player.unpause();
-            await interaction.reply({ content: '▶️ 재개림', flags: [MessageFlags.Ephemeral] });
+          if (queue.paused) {
+            queue.pause(false);
+            await interaction.reply({ content: '▶️ 재개됨', flags: [MessageFlags.Ephemeral] });
           } else {
-            queue.player.pause();
+            queue.pause(true);
             await interaction.reply({ content: '⏸️ 일시정지됨', flags: [MessageFlags.Ephemeral] });
           }
           break;
         case 'player_skip':
-          player.onSongEnd(interaction.guildId);
+          queue.skip();
           await interaction.reply({ content: '⏭️ 건너뜀', flags: [MessageFlags.Ephemeral] });
           break;
         case 'player_stop':
-          if (queue.connection) queue.connection.destroy();
-          player.queues.delete(interaction.guildId);
+          queue.destroy();
           await interaction.reply({ content: '⏹️ 정지됨', flags: [MessageFlags.Ephemeral] });
           break;
       }
