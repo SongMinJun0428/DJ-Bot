@@ -23,10 +23,10 @@ class MusicPlayer {
 
       // Check for node readiness
       const nodes = this.manager.shoukaku.nodes;
-      const readyNodes = nodes ? nodes.filter(n => n.state === 1) : []; // 1 = CONNECTED
+      const readyNodes = nodes ? Array.from(nodes.values()).filter(n => n.state === 1) : []; 
       
-      if (!readyNodes || readyNodes.size === 0) {
-        return textChannel.send('🛰️ 오디오 서버(Lavalink) 연결 중입니다. 잠시만 기다려 주세요... (v3.0.4)');
+      if (!readyNodes || readyNodes.length === 0) {
+        return textChannel.send('🛰️ 오디오 서버(Lavalink) 연결 중입니다. 잠시만 기다려 주세요... (v3.0.5)');
       }
 
       let player = this.manager.players.get(guildId);
@@ -38,7 +38,7 @@ class MusicPlayer {
           textId: textChannel.id,
           deaf: true
         });
-        console.log(`[v3.0.4] Created new Lavalink player for guild ${guildId}`);
+        console.log(`[v3.0.5] Created new Lavalink player for guild ${guildId}`);
       }
 
       const result = await this.manager.search(song.url || song.title, { requester: song.requester });
@@ -60,13 +60,13 @@ class MusicPlayer {
       if (!player.playing && !player.paused) await player.play();
 
     } catch (e) {
-      console.error('[v3.0.4] Play Error:', e);
+      console.error('[v3.0.5] Play Error:', e);
       textChannel.send('❌ 재생 중 오류가 발생했습니다. (Lavalink 노드 서버 확인 요망)');
     }
   }
 
   async join(voiceChannel, textChannel) {
-    console.log(`[v3.0.4] Preparing Lavalink join for ${voiceChannel.name}`);
+    console.log(`[v3.0.5] Preparing Lavalink join for ${voiceChannel.name}`);
     return true;
   }
 }
