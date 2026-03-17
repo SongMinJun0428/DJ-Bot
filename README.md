@@ -1,77 +1,81 @@
-# 🎵 DJ봇 (Discord Music Bot)
+# 🎧 Alohang 스타일 디스코드 DJ 봇 설정 가이드 (README.md)
 
-귀엽고 강력한 디스코드 음악 봇, **DJ봇**입니다!  
-Discloud 환경에 최적화되어 있으며, Supabase를 이용해 서버 설정을 안전하게 보관합니다.
+이 문서는 봇의 설치, 설정 및 사용 방법을 한국어로 자세히 설명합니다.
 
-![DJ봇 심볼](https://i.imgur.com/8nNf6D8.png)
+## 1. 봇 초기 설정 (Discord Developer Portal)
 
-## 🚀 주요 기능
-- **간편한 설정**: `/setup` 한 번으로 전용 음악 채널과 제어판 생성
-- **고품질 음악**: 유튜브 검색 및 링크 재생 지원
-- **직관적인 UI**: 버튼 클릭만으로 음악을 제어하는 세련된 패널
-- **영구 저장**: Supabase를 통해 서버별 설정을 영구적으로 유지
+봇이 정상적으로 작동하려면 디스코드 개발자 포털에서 다음과 같은 설정이 필요합니다.
+
+1.  **Privileged Gateway Intents**:
+    *   [Discord Developer Portal](https://discord.com/developers/applications)에 접속합니다.
+    *   해당 봇 애플리케이션을 선택합니다.
+    *   **Bot** 메뉴로 이동하여 아래 3가지 항목을 모두 **ON**으로 켭니다.
+        *   Presence Intent
+        *   Server Members Intent
+        *   **Message Content Intent** (가장 중요!)
+    *   `Save Changes`를 눌러 저장합니다.
+
+2.  **봇 초대 링크 만들기**:
+    *   **OAuth2** -> **URL Generator** 메뉴로 이동합니다.
+    *   `Scopes`에서 `bot`과 `applications.commands`를 체크합니다.
+    *   `Bot Permissions`에서 아래 권한들을 체크합니다.
+        *   Administrator (가장 간편함)
+        *   또는 필수 권한: `Manage Channels`, `Send Messages`, `Embed Links`, `Connect`, `Speak`, `Use External Emojis`, `Read Message History`.
+    *   생성된 URL을 복사하여 자신의 서버에 봇을 초대합니다.
+
+## 2. 서버 및 채널 설정
+
+봇을 서버에 초대한 후, 채널 자동 생성을 위해 아래 명령어를 사용하세요.
+
+*   **/setup** 또는 **/설정**:
+    *   이 명령어를 실행하면 봇이 전용 **음악 전용 채널**을 자동으로 만듭니다.
+    *   이 채널에는 상시 대시보드(인기차트, 검색 버튼 등)가 고정됩니다.
+    *   채널의 메시지 입력란에 노래 제목을 그냥 입력하는 것만으로 재생이 가능합니다.
+
+## 3. 주요 명령어 및 기능
+
+*   **/play [제목/링크]**: 음악을 검색하거나 링크로 재생합니다. 제목 검색 시 상위 10개 중 선택할 수 있는 UI가 나타납니다.
+*   **/skip**: 현재 곡을 건너뜁니다.
+*   **/queue**: 현재 대기열을 확인합니다.
+*   **/playlist**: 자신만의 플레이리스트를 만들고 관리합니다.
+*   **/local [파일명]**: 보관 중인 MP3/MP4 파일을 재생합니다.
+
+## 4. 자동 추천 (Autoplay) 기능
+
+노래가 끝나고 더 이상 재생할 곡이 없으면, 봇이 방금 들은 곡과 유사한 추천 곡을 자동으로 찾아 재생합니다. 중단하고 싶다면 큐를 비우거나 음성 채널에서 봇을 퇴장시키면 됩니다.
+
+## 5. 외부 서버(호스팅)에서 24시간 실행하는 방법
+
+본인의 개인 컴퓨터를 계속 켜둘 수 없다면, 외부 클라우드 서버(VPS)나 호스팅 서비스를 이용해야 합니다.
+
+### 방법 A: Railway (가장 추천 - 초보자용)
+설정이 매우 간단하며, GitHub와 연동하여 자동으로 배포할 수 있습니다.
+1.  [Railway.app](https://railway.app/)에 가입합니다.
+2.  이 코드 폴더를 본인의 **GitHub 레포지토리**에 업로드합니다.
+3.  Railway에서 `New Project` -> `Deploy from GitHub repo`를 선택합니다.
+4.  `Variables` 탭에서 `.env` 파일에 있는 내용(`DISCORD_TOKEN` 등)을 모두 추가합니다.
+5.  **데이터 저장(중요)**: 
+    *   기본적으로 Railway는 재배포 시 파일이 삭제됩니다. 
+    *   플레이리스트 데이터를 유지하려면 Railway 설정에서 `/db` 폴더에 **Volume**을 연결해야 합니다. (잘 모르시겠다면 임시용으로 그냥 쓰셔도 무방합니다.)
+6.  자동으로 배포가 시작되며, 완료되면 봇이 24시간 온라인 상태가 됩니다.
+
+### 방법 B: VPS (리눅스 서버 - 숙련자용)
+Oracle Cloud(무료), AWS, Google Cloud 등을 이용하는 방법입니다.
+1.  Ubuntu 서버에 접속합니다 (SSH).
+2.  Node.js와 Git을 설치합니다: 
+    ```bash
+    sudo apt update && sudo apt install -y nodejs npm git
+    ```
+3.  코드를 서버로 가져옵니다: `git clone <내-레포-주소>`
+4.  폴더로 이동하여 패키지를 설치합니다: `npm install`
+5.  **PM2**를 사용하여 백그라운드에서 실행합니다 (매우 중요!):
+    ```bash
+    sudo npm install -g pm2
+    pm2 start index.js --name "dj-bot"
+    pm2 save
+    pm2 startup
+    ```
+    *PM2를 사용하면 서버가 재부팅되어도 봇이 자동으로 다시 켜집니다.*
 
 ---
-
-## 🛠 사전 준비 사항 (Discord Developer Portal)
-
-1. [Discord Developer Portal](https://discord.com/developers/applications) 접속
-2. **New Application** 생성 (이름: DJ봇)
-3. **Bot** 탭에서:
-   - **Token** 복사 (나중에 `.env`에 사용)
-   - **Message Content Intent** 활성화 (중요!)
-   - **Server Members Intent** 활성화
-4. **OAuth2 -> URL Generator**에서:
-   - Scopes: `bot`, `applications.commands` 선택
-   - Bot Permissions:
-     - `View Channels`
-     - `Send Messages`
-     - `Embed Links`
-     - `Read Message History`
-     - `Connect`
-     - `Speak`
-     - `Use Application Commands`
-     - `Manage Channels`
-     - `Manage Messages`
-   - 링크 생성 후 본인 서버에 초대
-
----
-
-## ⚙️ 설정 방법 (.env)
-
-`.env.example` 파일을 복사하여 `.env` 파일을 만들고 아래 값을 채워주세요.
-
-```env
-DISCORD_BOT_TOKEN=디스코드_봇_토큰
-SUPABASE_URL=슈파베이스_URL
-SUPABASE_KEY=슈파베이스_KEY
-```
-
----
-
-## ☁️ Render 배포 방법
-
-1. 코드를 본인의 **GitHub 저장소**에 올립니다.
-2. [Render Dashboard](https://dashboard.render.com)에서 **New -> Web Service**를 선택합니다.
-3. GitHub 저장소를 연결합니다.
-4. **Environment Settings**에서 다음 변수들을 추가합니다:
-   - `DISCORD_BOT_TOKEN`
-   - `SUPABASE_URL`
-   - `SUPABASE_KEY`
-5. **Build Command**: `npm install`
-6. **Start Command**: `node index.js`
-
----
-
-## 🔍 실행 확인
-1. Render 대시보드의 **Logs** 탭을 확인합니다.
-2. `✅ Server is running on port...` 메시지를 확인합니다.
-3. `✅ Logged in as DJ봇#1234` 메시지가 뜨면 성공!
-
----
-
-## 💡 사용자 가이드
-- 서버 입장 후 `/setup` 명령어를 입력하세요.
-- 생성된 `#dj봇-음악-제어` 채널에서 음악을 즐기세요!
-
-> **주의**: Supabase SQL Schema를 반드시 본인의 Supabase 프로젝트에서 실행해야 설정 저장이 작동합니다. (`db/schema.sql` 참고)
+봇 제작 및 코드 구현에 대해 궁금한 점이 더 있으시면 언제든 말씀해주세요!
