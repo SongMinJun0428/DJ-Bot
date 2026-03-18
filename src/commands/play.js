@@ -80,11 +80,11 @@ module.exports = {
         }
         const playResult = await this.addAndPlay(interaction, song, fromChannel);
         if (!fromChannel && interaction.deferred) {
-            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v4.0.8)`;
+            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v4.0.9)`;
             await interaction.editReply({ content }).catch(() => {});
         }
       } else {
-        console.log(`[v4.0.8] Searching for: ${query}`);
+        console.log(`[v4.0.9] Searching for: ${query}`);
         const searchResults = await play.search(query, { limit: 10 });
         if (searchResults.length === 0) {
             const msg = '검색 결과가 없습니다.';

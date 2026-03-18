@@ -34,16 +34,16 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v4.0.8 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v4.0.9 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v4.0.8)
-  console.log('[v4.0.8] Calling player.init()...');
+  // Initialize Lavalink Audio Engine (v4.0.9)
+  console.log('[v4.0.9] Calling player.init()...');
   try {
     player.init(client);
-    console.log('[v4.0.8] player.init() call complete.');
+    console.log('[v4.0.9] player.init() call complete.');
   } catch (err) {
-    console.error('❌ [v4.0.8] FATAL: player.init() failed!', err);
+    console.error('❌ [v4.0.9] FATAL: player.init() failed!', err);
   }
 
   // CRITICAL INTENT CHECK
@@ -215,48 +215,81 @@ client.on(Events.MessageCreate, async message => {
     const playCmd = client.commands.get('play');
     if (playCmd) {
         await playCmd.execute(interactionPlaceholder, true);
-        // Refresh Dashboard after processing (Sticky - v4.0.8)
+        // Unified UI Refresh (v4.0.9)
         setTimeout(() => {
-            refreshDashboard(message.guild.id);
+            const player = client.player.kazagumo.players.get(message.guild.id);
+            refreshMusicInterface(message.guild.id, player ? player.queue.current : null);
         }, 3000);
     }
   }
 });
 
-// STICKY DASHBOARD HELPER (v4.0.8)
-async function refreshDashboard(guildId) {
+// UNIFIED MUSIC INTERFACE HELPER (v4.0.9)
+// Strictly maintains [Dashboard] above [Now Playing] (Bottom)
+async function refreshMusicInterface(guildId, currentTrack = null) {
     const config = db.getGuildConfig(guildId);
-    if (!config || !config.music_channel_id || !config.dashboard_msg_id) return;
+    if (!config || !config.music_channel_id) return;
 
     const guild = client.guilds.cache.get(guildId);
-    if (!guild) return;
-
-    const channel = guild.channels.cache.get(config.music_channel_id);
+    const channel = guild?.channels.cache.get(config.music_channel_id);
     if (!channel) return;
 
     try {
-        // Delete old message
-        const oldMsg = await channel.messages.fetch(config.dashboard_msg_id).catch(() => null);
-        if (oldMsg) await oldMsg.delete().catch(() => {});
-
-        // Send new message
         const embeds = require('./src/utils/embeds');
+        
+        // 1. Prepare Content
         const dashboardEmbed = embeds.createDashboardEmbed(guild.name);
-        const buttons = embeds.createDashboardButtons();
+        const dashboardButtons = embeds.createDashboardButtons();
 
-        const newMsg = await channel.send({
-            embeds: [dashboardEmbed],
-            components: buttons
-        });
+        // 2. Locate Messages
+        let existingDashboard = config.dashboard_msg_id ? await channel.messages.fetch(config.dashboard_msg_id).catch(() => null) : null;
+        let existingNP = config.now_playing_msg_id ? await channel.messages.fetch(config.now_playing_msg_id).catch(() => null) : null;
 
-        // Update DB
-        db.setGuildConfig(guildId, channel.id, newMsg.id);
+        // 3. CASE: Song is playing -> Ensure Order [Dashboard] -> [NP] (Bottom)
+        if (currentTrack) {
+            const song = {
+                title: currentTrack.title,
+                url: currentTrack.uri,
+                thumbnail: currentTrack.thumbnail || 'https://i.imgur.com/vHdfyC7.png',
+                durationRaw: currentTrack.isStream ? 'LIVE' : new Date(currentTrack.length).toISOString().substr(11, 8),
+                author: currentTrack.author,
+                requester: currentTrack.requester
+            };
+            const npEmbed = embeds.createNowPlayingEmbed(song);
+            const npControls = embeds.createPlayerControlButtons();
+
+            // Check if they are already in order at the absolute bottom
+            // Simple heuristic: if NP exists and was sent after Dashboard, we try to Edit.
+            if (existingDashboard && existingNP && existingNP.createdTimestamp > existingDashboard.createdTimestamp) {
+                await existingDashboard.edit({ embeds: [dashboardEmbed], components: dashboardButtons }).catch(() => {});
+                await existingNP.edit({ embeds: [npEmbed], components: [npControls] }).catch(() => {});
+            } else {
+                // Nuclear reset for perfect order
+                if (existingDashboard) await existingDashboard.delete().catch(() => {});
+                if (existingNP) await existingNP.delete().catch(() => {});
+                
+                const newDashboard = await channel.send({ embeds: [dashboardEmbed], components: dashboardButtons });
+                const newNP = await channel.send({ embeds: [npEmbed], components: [npControls] });
+                
+                db.setGuildConfig(guildId, channel.id, newDashboard.id, newNP.id);
+            }
+        } 
+        // 4. CASE: Nothing playing -> Dashboard only at Bottom
+        else {
+            if (existingNP) {
+                await existingNP.delete().catch(() => {});
+                db.updateNowPlayingId(guildId, null);
+            }
+            // Move Dashboard to bottom if it's not already
+            if (existingDashboard) await existingDashboard.delete().catch(() => {});
+            const newDashboard = await channel.send({ embeds: [dashboardEmbed], components: dashboardButtons });
+            db.setGuildConfig(guildId, channel.id, newDashboard.id, null);
+        }
     } catch (e) {
-        console.error('[v4.0.6] Refresh Dashboard Error:', e);
+        console.error('[v4.0.9] refreshMusicInterface Error:', e);
     }
 }
 
-// Export for other modules
-client.refreshDashboard = refreshDashboard;
+client.refreshMusicInterface = refreshMusicInterface;
 
 client.login(process.env.DISCORD_TOKEN);

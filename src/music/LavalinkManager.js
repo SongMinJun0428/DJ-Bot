@@ -11,10 +11,10 @@ const Nodes = [
     secure: true
   },
   {
-    name: 'Koolisw',
-    host: 'lavalink.koolisw.com',
+    name: 'AjieDev',
+    host: 'lava-v4.ajieblogs.eu.org',
     port: 443,
-    password: 'youshallnotpass',
+    password: 'https://dsc.gg/ajidevserver',
     secure: true
   }
 ];
@@ -84,66 +84,24 @@ class LavalinkManager {
     });
     
     this.kazagumo.on('playerStart', async (player, track) => {
-        console.log(`[v4.0.8 AUDIO] Playing: ${track.title}`);
-        const channel = client.channels.cache.get(player.textId);
-        if (channel) {
-            const config = db.getGuildConfig(player.guildId);
-            const song = {
-                title: track.title,
-                url: track.uri,
-                thumbnail: track.thumbnail || 'https://i.imgur.com/vHdfyC7.png',
-                durationRaw: track.isStream ? 'LIVE' : new Date(track.length).toISOString().substr(11, 8),
-                author: track.author,
-                requester: track.requester
-            };
-            const npEmbed = embeds.createNowPlayingEmbed(song);
-            const controls = embeds.createPlayerControlButtons();
-
-            // 1. Try to Edit existing Now Playing
-            let oldNp = null;
-            if (config && config.now_playing_msg_id) {
-                oldNp = await channel.messages.fetch(config.now_playing_msg_id).catch(() => null);
-            }
-
-            if (oldNp) {
-                await oldNp.edit({ embeds: [npEmbed], components: [controls] }).catch(() => {
-                    oldNp = null; // Reset if edit fails
-                });
-            }
-
-            // 2. If no old message or edit failed, send new one
-            if (!oldNp) {
-                // Ensure dashboard is above
-                await client.refreshDashboard(player.guildId);
-                const newNp = await channel.send({ embeds: [npEmbed], components: [controls] });
-                db.updateNowPlayingId(player.guildId, newNp.id);
-            }
-        }
+        console.log(`[v4.0.9 AUDIO] Playing: ${track.title}`);
+        // Consolidate UI Refresh in client.refreshMusicInterface
+        setTimeout(() => {
+            client.refreshMusicInterface(player.guildId, track);
+        }, 1000);
     });
 
     this.kazagumo.on('playerEnd', (player) => {
-        console.log('[v4.0.8 AUDIO] Track ended.');
+        console.log('[v4.0.9 AUDIO] Track ended.');
     });
 
     this.kazagumo.on('playerEmpty', async (player) => {
-        console.log('[v4.0.8 AUDIO] Queue empty');
-        const channel = client.channels.cache.get(player.textId);
-        const config = db.getGuildConfig(player.guildId);
-
-        // Delete Now Playing on exit
-        if (channel && config && config.now_playing_msg_id) {
-            const oldNp = await channel.messages.fetch(config.now_playing_msg_id).catch(() => null);
-            if (oldNp) await oldNp.delete().catch(() => {});
-            db.updateNowPlayingId(player.guildId, null);
-        }
-
-        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v4.0.8)');
-        player.destroy();
-        
-        // Final Dashboard Refresh (to bottom)
+        console.log('[v4.0.9 AUDIO] Queue empty');
+        // Final cleanup and dashboard return to bottom
         setTimeout(() => {
-            client.refreshDashboard(player.guildId);
-        }, 2000);
+            client.refreshMusicInterface(player.guildId, null);
+        }, 1500);
+        player.destroy();
     });
   }
 }
