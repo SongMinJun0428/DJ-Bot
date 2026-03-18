@@ -24,7 +24,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS guild_config (
     guild_id TEXT PRIMARY KEY,
     music_channel_id TEXT,
-    dashboard_msg_id TEXT
+    dashboard_msg_id TEXT,
+    now_playing_msg_id TEXT
   );
 `);
 
@@ -53,12 +54,17 @@ module.exports = {
   },
 
   // Guild config functions
-  setGuildConfig: (guildId, channelId, msgId) => {
-    const stmt = db.prepare('INSERT OR REPLACE INTO guild_config (guild_id, music_channel_id, dashboard_msg_id) VALUES (?, ?, ?)');
-    return stmt.run(guildId, channelId, msgId);
+  setGuildConfig: (guildId, channelId, dashboardMsgId, nowPlayingMsgId = null) => {
+    const stmt = db.prepare('INSERT OR REPLACE INTO guild_config (guild_id, music_channel_id, dashboard_msg_id, now_playing_msg_id) VALUES (?, ?, ?, ?)');
+    return stmt.run(guildId, channelId, dashboardMsgId, nowPlayingMsgId);
   },
 
   getGuildConfig: (guildId) => {
     return db.prepare('SELECT * FROM guild_config WHERE guild_id = ?').get(guildId);
+  },
+
+  updateNowPlayingId: (guildId, nowPlayingMsgId) => {
+    const stmt = db.prepare('UPDATE guild_config SET now_playing_msg_id = ? WHERE guild_id = ?');
+    return stmt.run(nowPlayingMsgId, guildId);
   }
 };

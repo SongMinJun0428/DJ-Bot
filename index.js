@@ -34,16 +34,16 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v4.0.6 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v4.0.8 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v4.0.6)
-  console.log('[v4.0.6] Calling player.init()...');
+  // Initialize Lavalink Audio Engine (v4.0.8)
+  console.log('[v4.0.8] Calling player.init()...');
   try {
     player.init(client);
-    console.log('[v4.0.6] player.init() call complete.');
+    console.log('[v4.0.8] player.init() call complete.');
   } catch (err) {
-    console.error('❌ [v4.0.6] FATAL: player.init() failed!', err);
+    console.error('❌ [v4.0.8] FATAL: player.init() failed!', err);
   }
 
   // CRITICAL INTENT CHECK
@@ -156,7 +156,7 @@ client.on(Events.InteractionCreate, async interaction => {
           break;
         case 'player_skip':
           queue.skip();
-          await interaction.reply({ content: '⏭️ 건너뜀', flags: [MessageFlags.Ephemeral] });
+          await interaction.reply({ content: '⏭️ 건너김', flags: [MessageFlags.Ephemeral] });
           break;
         case 'player_stop':
           queue.destroy();
@@ -176,9 +176,9 @@ client.on(Events.MessageCreate, async message => {
   
   const config = db.getGuildConfig(message.guildId);
   if (config && message.channelId === config.music_channel_id) {
-    if (attachment) console.log(`[v4.0.6] Attachment detected in music channel: ${attachment.name}`);
+    if (attachment) console.log(`[v4.0.8] Attachment detected in music channel: ${attachment.name}`);
     
-    // AUTO-DELETE USER MESSAGE (Sticky Dashboard - v4.0.6)
+    // AUTO-DELETE USER MESSAGE (Sticky Dashboard - v4.0.8)
     setTimeout(() => {
         message.delete().catch(() => {});
     }, 1000);
@@ -215,7 +215,7 @@ client.on(Events.MessageCreate, async message => {
     const playCmd = client.commands.get('play');
     if (playCmd) {
         await playCmd.execute(interactionPlaceholder, true);
-        // Refresh Dashboard after processing (Sticky - v4.0.6)
+        // Refresh Dashboard after processing (Sticky - v4.0.8)
         setTimeout(() => {
             refreshDashboard(message.guild.id);
         }, 3000);
@@ -223,7 +223,7 @@ client.on(Events.MessageCreate, async message => {
   }
 });
 
-// STICKY DASHBOARD HELPER (v4.0.6)
+// STICKY DASHBOARD HELPER (v4.0.8)
 async function refreshDashboard(guildId) {
     const config = db.getGuildConfig(guildId);
     if (!config || !config.music_channel_id || !config.dashboard_msg_id) return;
