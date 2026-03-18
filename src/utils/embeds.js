@@ -24,14 +24,18 @@ module.exports = {
 
   createNowPlayingEmbed: (track) => {
     return new EmbedBuilder()
-      .setColor('#00FF00')
-      .setTitle('▶️ 현재 재생 중')
-      .setDescription(`[${track.title}](${track.url})`)
-      .addFields(
-        { name: '작성자', value: track.author || '알 수 없음', inline: true },
-        { name: '길이', value: track.durationRaw || '알 수 없음', inline: true }
-      )
+      .setColor('#2F3136')
+      .setTitle('『 현재 재생 중 』')
       .setThumbnail(track.thumbnail)
+      .setDescription(`
+**[${track.title}](${track.url})**
+
+\`0:00\` ▬▬▬▬▬▬▬▬▬▬▬🔘────────── \`${track.durationRaw || 'LIVE'}\`
+
+**┃ 👤 요청자:** <@${track.requester?.id || 'Unknown'}>
+**┃ 🎙️ 아티스트:** \`${track.author || 'Youtube'}\`
+      `)
+      .setFooter({ text: '💡 버튼을 눌러 플레이어를 제어하세요.' })
       .setTimestamp();
   },
 
@@ -57,11 +61,28 @@ module.exports = {
   createPlayerControlButtons: () => {
     return new ActionRowBuilder()
       .addComponents(
-        new ButtonBuilder().setCustomId('player_prev').setLabel('⏮️').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('player_pause').setLabel('⏸️').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('player_skip').setLabel('⏭️').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('player_stop').setLabel('⏹️').setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId('player_repeat').setLabel('🔁').setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId('player_pause').setLabel('⏯️ 재생/일시정지').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('player_skip').setLabel('⏭️ 건너뛰기').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('player_stop').setLabel('⏹️ 중지').setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId('player_repeat').setLabel('🔁 반복').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('player_queue').setLabel('📜 대기열').setStyle(ButtonStyle.Primary)
       );
+  },
+
+  createSearchEmbed: (results, title = '검색 결과') => {
+    const description = results.map((v, i) => {
+      const duration = v.durationRaw || 'LIVE';
+      const author = v.channel ? v.channel.name : 'Youtube';
+      // Limit title length for clean UI
+      const cleanTitle = v.title.length > 50 ? v.title.substring(0, 47) + '...' : v.title;
+      return `${i + 1}. **${cleanTitle}** (${duration})`;
+    }).join('\n');
+
+    return new EmbedBuilder()
+      .setColor('#2F3136')
+      .setTitle(`『${title}』`)
+      .setDescription(description)
+      .setThumbnail(results[0].thumbnails ? results[0].thumbnails[0].url : (results[0].thumbnail || null))
+      .setTimestamp();
   }
 };

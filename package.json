@@ -1,7 +1,7 @@
 {
   "name": "dj-bot",
-  "version": "3.1.10",
-  "description": "Alohang style Discord DJ Bot",
+  "version": "4.0.2",
+  "description": "Premium Discord DJ Bot - Enjoying with music",
   "main": "index.js",
   "scripts": {
     "start": "node --dns-result-order=ipv4first index.js",

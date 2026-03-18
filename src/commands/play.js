@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const play = require('play-dl');
 const musicPlayer = require('../music/Player');
+const embeds = require('../utils/embeds');
+const { MessageFlags } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -56,9 +58,9 @@ module.exports = {
                 isLocal: false
             };
         } else {
-            console.log(`[v3.1.2] Fetching video info for: ${query}`);
+            console.log(`[v3.1.14] Fetching video info for: ${query}`);
             const videoInfo = await play.video_info(query).catch(err => {
-              console.error('[v3.1.2] Video Info Error:', err.message);
+              console.error('[v3.1.14] Video Info Error:', err.message);
               return null;
             });
 
@@ -78,11 +80,11 @@ module.exports = {
         }
         const playResult = await this.addAndPlay(interaction, song, fromChannel);
         if (!fromChannel && interaction.deferred) {
-            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v3.1.10)`;
+            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v4.0.2)`;
             await interaction.editReply({ content }).catch(() => {});
         }
       } else {
-        console.log(`[v3.1.10] Searching for: ${query}`);
+        console.log(`[v4.0.2] Searching for: ${query}`);
         const searchResults = await play.search(query, { limit: 10 });
         if (searchResults.length === 0) {
             const msg = '검색 결과가 없습니다.';
@@ -106,7 +108,7 @@ module.exports = {
         // Selection Menu for Slash Commands
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId('select_song')
-          .setPlaceholder('노래를 선택하세요 (상위 10개)')
+          .setPlaceholder('음악을 재생하려면 선택하세요')
           .addOptions(searchResults.map((video, index) => ({
             label: `${index + 1}. ${video.title.substring(0, 90)}`,
             description: video.channel ? (video.channel.name || 'Youtube') : 'Youtube',
@@ -114,7 +116,12 @@ module.exports = {
           })));
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
-        const response = await interaction.editReply({ content: '재생할 노래를 선택해주세요:', components: [row] });
+        const searchEmbed = musicPlayer.lavalink.embeds.createSearchEmbed(searchResults, query);
+        
+        const response = await interaction.editReply({ 
+            embeds: [searchEmbed], 
+            components: [row] 
+        });
 
         const filter = i => i.customId === 'select_song' && i.user.id === member.id;
         try {
@@ -128,18 +135,18 @@ module.exports = {
             author: selectedVideo.channel ? selectedVideo.channel.name : '알 수 없음',
             isLocal: false
           };
-          await confirmation.update({ content: `✅ **${song.title}** 선택됨!`, components: [] });
+          await confirmation.update({ content: `✅ **${song.title}** 선택됨! (v3.1.14)`, embeds: [], components: [] });
           const playResult = await this.addAndPlay(interaction, song, false);
           if (playResult && playResult.status === 'WAITING') {
-              await interaction.followUp({ content: playResult.message, ephemeral: true }).catch(() => {});
+              await interaction.followUp({ content: playResult.message, flags: [MessageFlags.Ephemeral] }).catch(() => {});
           }
         } catch (e) {
-          console.error('[v3.1.10] Selection timeout or error:', e);
-          interaction.editReply({ content: '선택 시간이 초과되었습니다.', components: [] }).catch(() => {});
+          console.error('[v3.1.14] Selection timeout or error:', e);
+          interaction.editReply({ content: '선택 시간이 초과되었습니다.', embeds: [], components: [] }).catch(() => {});
         }
       }
     } catch (e) {
-      console.error('[v3.1.10] Play command Error:', e);
+      console.error('[v3.1.14] Play command Error:', e);
       const errMsg = '❌ 재생 중 오류가 발생했습니다.';
       if (fromChannel) interaction.channel.send(errMsg);
       else if (interaction.deferred) interaction.editReply(errMsg).catch(() => {});
