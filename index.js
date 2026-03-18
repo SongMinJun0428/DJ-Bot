@@ -34,16 +34,16 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v4.0.4 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v4.0.6 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v4.0.4)
-  console.log('[v4.0.4] Calling player.init()...');
+  // Initialize Lavalink Audio Engine (v4.0.6)
+  console.log('[v4.0.6] Calling player.init()...');
   try {
     player.init(client);
-    console.log('[v4.0.4] player.init() call complete.');
+    console.log('[v4.0.6] player.init() call complete.');
   } catch (err) {
-    console.error('❌ [v4.0.4] FATAL: player.init() failed!', err);
+    console.error('❌ [v4.0.6] FATAL: player.init() failed!', err);
   }
 
   // CRITICAL INTENT CHECK
@@ -176,11 +176,13 @@ client.on(Events.MessageCreate, async message => {
   
   const config = db.getGuildConfig(message.guildId);
   if (config && message.channelId === config.music_channel_id) {
-    // Treat message content as a search query
-    // This will be handled by a helper function to play music
-    const attachment = message.attachments.first();
-    if (attachment) console.log(`[v4.0.4] Attachment detected in music channel: ${attachment.name}`);
+    if (attachment) console.log(`[v4.0.6] Attachment detected in music channel: ${attachment.name}`);
     
+    // AUTO-DELETE USER MESSAGE (Sticky Dashboard - v4.0.6)
+    setTimeout(() => {
+        message.delete().catch(() => {});
+    }, 1000);
+
     let lastResponse = null;
 
     const interactionPlaceholder = { 
@@ -211,8 +213,50 @@ client.on(Events.MessageCreate, async message => {
         deferred: false
     };
     const playCmd = client.commands.get('play');
-    if (playCmd) playCmd.execute(interactionPlaceholder, true);
+    if (playCmd) {
+        await playCmd.execute(interactionPlaceholder, true);
+        // Refresh Dashboard after processing (Sticky - v4.0.6)
+        setTimeout(() => {
+            refreshDashboard(message.guild.id);
+        }, 3000);
+    }
   }
 });
+
+// STICKY DASHBOARD HELPER (v4.0.6)
+async function refreshDashboard(guildId) {
+    const config = db.getGuildConfig(guildId);
+    if (!config || !config.music_channel_id || !config.dashboard_msg_id) return;
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return;
+
+    const channel = guild.channels.cache.get(config.music_channel_id);
+    if (!channel) return;
+
+    try {
+        // Delete old message
+        const oldMsg = await channel.messages.fetch(config.dashboard_msg_id).catch(() => null);
+        if (oldMsg) await oldMsg.delete().catch(() => {});
+
+        // Send new message
+        const embeds = require('./src/utils/embeds');
+        const dashboardEmbed = embeds.createDashboardEmbed(guild.name);
+        const buttons = embeds.createDashboardButtons();
+
+        const newMsg = await channel.send({
+            embeds: [dashboardEmbed],
+            components: buttons
+        });
+
+        // Update DB
+        db.setGuildConfig(guildId, channel.id, newMsg.id);
+    } catch (e) {
+        console.error('[v4.0.6] Refresh Dashboard Error:', e);
+    }
+}
+
+// Export for other modules
+client.refreshDashboard = refreshDashboard;
 
 client.login(process.env.DISCORD_TOKEN);
