@@ -34,16 +34,16 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v4.1.0 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v4.1.2 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v4.1.0)
-  console.log('[v4.1.0] Calling player.init()...');
+  // Initialize Lavalink Audio Engine (v4.1.2)
+  console.log('[v4.1.1] Calling player.init()...');
   try {
     player.init(client);
-    console.log('[v4.1.0] player.init() call complete.');
+    console.log('[v4.1.2] player.init() call complete.');
   } catch (err) {
-    console.error('❌ [v4.1.0] FATAL: player.init() failed!', err);
+    console.error('❌ [v4.1.2] FATAL: player.init() failed!', err);
   }
 
   // CRITICAL INTENT CHECK
@@ -176,9 +176,10 @@ client.on(Events.MessageCreate, async message => {
   
   const config = db.getGuildConfig(message.guildId);
   if (config && message.channelId === config.music_channel_id) {
-    if (attachment) console.log(`[v4.0.8] Attachment detected in music channel: ${attachment.name}`);
+    const attachment = message.attachments.first();
+    if (attachment) console.log(`[v4.1.2] Attachment detected in music channel: ${attachment.name}`);
     
-    // AUTO-DELETE USER MESSAGE (Sticky Dashboard - v4.0.8)
+    // AUTO-DELETE USER MESSAGE (Sticky Dashboard - v4.1.2)
     setTimeout(() => {
         message.delete().catch(() => {});
     }, 1000);
@@ -196,14 +197,28 @@ client.on(Events.MessageCreate, async message => {
             getString: () => message.content,
             getAttachment: () => attachment
         },
+        deferReply: async () => {},
+        reply: async (options) => {
+            const msg = await message.channel.send(options);
+            setTimeout(() => msg.delete().catch(() => {}), 3000);
+            return msg;
+        },
+        editReply: async (options) => {
+            lastResponse = await message.channel.send(options);
+            setTimeout(() => lastResponse.delete().catch(() => {}), 3000);
             return lastResponse;
+        },
+        followUp: async (options) => {
+            const msg = await message.channel.send(options);
+            setTimeout(() => msg.delete().catch(() => {}), 3000);
+            return msg;
         },
         deferred: false
     };
     const playCmd = client.commands.get('play');
     if (playCmd) {
         await playCmd.execute(interactionPlaceholder, true);
-        // Unified UI Refresh (v4.0.9)
+        // Unified UI Refresh (v4.1.2)
         setTimeout(() => {
             const player = client.player.kazagumo.players.get(message.guild.id);
             refreshMusicInterface(message.guild.id, player ? player.queue.current : null);
@@ -212,7 +227,7 @@ client.on(Events.MessageCreate, async message => {
   }
 });
 
-// UNIFIED MUSIC INTERFACE HELPER (v4.0.9)
+// UNIFIED MUSIC INTERFACE HELPER (v4.1.2)
 // Strictly maintains [Dashboard] above [Now Playing] (Bottom)
 async function refreshMusicInterface(guildId, currentTrack = null) {
     const config = db.getGuildConfig(guildId);
@@ -274,7 +289,7 @@ async function refreshMusicInterface(guildId, currentTrack = null) {
             db.setGuildConfig(guildId, channel.id, newDashboard.id, null);
         }
     } catch (e) {
-        console.error('[v4.0.9] refreshMusicInterface Error:', e);
+        console.error('[v4.1.2] refreshMusicInterface Error:', e);
     }
 }
 
