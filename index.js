@@ -34,16 +34,16 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v4.1.2 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v4.1.3 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v4.1.2)
-  console.log('[v4.1.1] Calling player.init()...');
+  // Initialize Lavalink Audio Engine (v4.1.3)
+  console.log('[v4.1.3] Calling player.init()...');
   try {
     player.init(client);
-    console.log('[v4.1.2] player.init() call complete.');
+    console.log('[v4.1.3] player.init() call complete.');
   } catch (err) {
-    console.error('❌ [v4.1.2] FATAL: player.init() failed!', err);
+    console.error('❌ [v4.1.3] FATAL: player.init() failed!', err);
   }
 
   // CRITICAL INTENT CHECK
@@ -218,7 +218,7 @@ client.on(Events.MessageCreate, async message => {
     const playCmd = client.commands.get('play');
     if (playCmd) {
         await playCmd.execute(interactionPlaceholder, true);
-        // Unified UI Refresh (v4.1.2)
+        // Unified UI Refresh (v4.1.3)
         setTimeout(() => {
             const player = client.player.kazagumo.players.get(message.guild.id);
             refreshMusicInterface(message.guild.id, player ? player.queue.current : null);
@@ -227,7 +227,7 @@ client.on(Events.MessageCreate, async message => {
   }
 });
 
-// UNIFIED MUSIC INTERFACE HELPER (v4.1.2)
+// UNIFIED MUSIC INTERFACE HELPER (v4.1.3)
 // Strictly maintains [Dashboard] above [Now Playing] (Bottom)
 async function refreshMusicInterface(guildId, currentTrack = null) {
     const config = db.getGuildConfig(guildId);

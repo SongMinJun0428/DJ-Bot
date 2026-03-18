@@ -58,9 +58,9 @@ module.exports = {
                 isLocal: false
             };
         } else {
-            console.log(`[v3.1.14] Fetching video info for: ${query}`);
+            console.log(`[v4.1.3] Fetching video info for: ${query}`);
             const videoInfo = await play.video_info(query).catch(err => {
-              console.error('[v3.1.14] Video Info Error:', err.message);
+              console.error('[v4.1.3] Video Info Error:', err.message);
               return null;
             });
 
@@ -121,18 +121,25 @@ module.exports = {
             author: selectedVideo.channel ? selectedVideo.channel.name : '알 수 없음',
             isLocal: false
           };
-          await confirmation.update({ content: `✅ **${song.title}** 선택됨! (v3.1.14)`, embeds: [], components: [] });
+          await confirmation.update({ content: `✅ **${song.title}** 선택됨! (v4.1.3)`, embeds: [], components: [] });
+          
+          // Auto-delete the select menu message after a short delay (v4.1.3)
+          setTimeout(() => {
+              response.delete().catch(() => {});
+          }, 2000);
+
           const playResult = await this.addAndPlay(interaction, song, false);
           if (playResult && playResult.status === 'WAITING') {
               await interaction.followUp({ content: playResult.message, flags: [MessageFlags.Ephemeral] }).catch(() => {});
           }
         } catch (e) {
-          console.error('[v3.1.14] Selection timeout or error:', e);
+          console.error('[v4.1.3] Selection timeout or error:', e);
           interaction.editReply({ content: '선택 시간이 초과되었습니다.', embeds: [], components: [] }).catch(() => {});
+          setTimeout(() => response.delete().catch(() => {}), 3000);
         }
       }
     } catch (e) {
-      console.error('[v3.1.14] Play command Error:', e);
+      console.error('[v4.1.3] Play command Error:', e);
       const errMsg = '❌ 재생 중 오류가 발생했습니다.';
       if (fromChannel) interaction.channel.send(errMsg);
       else if (interaction.deferred) interaction.editReply(errMsg).catch(() => {});
