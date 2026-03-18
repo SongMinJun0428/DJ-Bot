@@ -18,20 +18,6 @@ const Nodes = [
     secure: true
   },
   {
-    name: 'Jirayu',
-    host: 'lavalink.jirayu.net',
-    port: 443,
-    password: 'youshallnotpass',
-    secure: true
-  },
-  {
-    name: 'Muzykant',
-    host: 'lavalink_v4.muzykant.xyz',
-    port: 443,
-    password: 'https://discord.gg/v6sdrD9kPh',
-    secure: true
-  },
-  {
     name: 'Lavalink.pw',
     host: 'v4.lavalink.pw',
     port: 443,
@@ -41,6 +27,20 @@ const Nodes = [
   {
     name: 'Shadow',
     host: 'lavalink.shadowit.ro',
+    port: 443,
+    password: 'youshallnotpass',
+    secure: true
+  },
+  {
+    name: 'AjieAnthony',
+    host: 'lava-v4.ajieanthony.me',
+    port: 443,
+    password: 'youshallnotpass',
+    secure: true
+  },
+  {
+    name: 'Koolisw',
+    host: 'lavalink.koolisw.com',
     port: 443,
     password: 'youshallnotpass',
     secure: true
@@ -71,44 +71,52 @@ class LavalinkManager {
     
     // CRITICAL FIX: Manually bind the ID if Shoukaku missed it
     if (!this.shoukaku.id && botId) {
-        console.log(`[v3.1.8] Forcing Shoukaku ID to ${botId}`);
+        console.log(`[v3.1.9] Forcing Shoukaku ID to ${botId}`);
         this.shoukaku.id = botId;
     }
     if (this.shoukaku.connector && !this.shoukaku.connector.id && botId) {
         this.shoukaku.connector.id = botId;
     }
 
-    // Manually add nodes
-    console.log(`[v3.1.8] Registering ${Nodes.length} nodes...`);
-    Nodes.forEach(node => {
-        try {
-            const nodeConfig = {
-                name: node.name,
-                host: node.host,
-                port: node.port,
-                password: node.password,
-                secure: node.secure,
-                auth: node.password,
-                url: `${node.host}:${node.port}`
-            };
-            this.shoukaku.addNode(nodeConfig);
-            console.log(`[v3.1.8] Node added to queue: ${node.name}`);
-        } catch (e) {
-            console.error(`[v3.1.8] Node error (${node.name}):`, e.message);
-        }
+    // Manually add nodes with minimal jitter to avoid 429
+    console.log(`[v3.1.9] Registering ${Nodes.length} nodes with jitter...`);
+    Nodes.forEach((node, index) => {
+        setTimeout(() => {
+            try {
+                const nodeConfig = {
+                    name: node.name,
+                    host: node.host,
+                    port: node.port,
+                    password: node.password,
+                    secure: node.secure,
+                    auth: node.password,
+                    url: `${node.host}:${node.port}`
+                };
+                this.shoukaku.addNode(nodeConfig);
+                console.log(`[v3.1.9] Node added to queue (${index + 1}/${Nodes.length}): ${node.name}`);
+            } catch (e) {
+                console.error(`[v3.1.9] Node error (${node.name}):`, e.message);
+            }
+        }, index * 1000); // 1-second delay between each node to prevent rate limits
     });
 
-    console.log(`[v3.1.8] Initialization complete. Actual Nodes: ${this.shoukaku.nodes.size}`);
+    console.log(`[v3.1.9] Initialization complete. Current Nodes in Map: ${this.shoukaku.nodes.size}`);
 
     // Node Event Logs
-    this.shoukaku.on('ready', (name) => console.log(`[v3.1.8] Node "${name}" is READY.`));
-    this.shoukaku.on('error', (name, error) => console.error(`[v3.1.8] Node "${name}" error:`, error));
+    this.shoukaku.on('ready', (name) => console.log(`[v3.1.9] Node "${name}" is READY.`));
+    this.shoukaku.on('error', (name, error) => {
+        if (error.message && error.message.includes('429')) {
+            console.warn(`[v3.1.9] Node "${name}" is rate limited (429). Will retry automatically.`);
+        } else {
+            console.error(`[v3.1.9] Node "${name}" error:`, error.message || error);
+        }
+    });
     this.shoukaku.on('debug', (name, info) => {
-        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v3.1.8 DEBUG] Node "${name}": ${info}`);
+        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v3.1.9 DEBUG] Node "${name}": ${info}`);
     });
     
     this.kazagumo.on('playerStart', (player, track) => {
-        console.log(`[v3.1.8 AUDIO] Playing: ${track.title}`);
+        console.log(`[v3.1.9 AUDIO] Playing: ${track.title}`);
         const channel = client.channels.cache.get(player.textId);
         if (channel) {
             const song = {
@@ -125,13 +133,13 @@ class LavalinkManager {
     });
 
     this.kazagumo.on('playerEnd', (player) => {
-        console.log('[v3.1.8 AUDIO] Track ended.');
+        console.log('[v3.1.9 AUDIO] Track ended.');
     });
 
     this.kazagumo.on('playerEmpty', (player) => {
-        console.log('[v3.1.8 AUDIO] Queue empty, leaving channel.');
+        console.log('[v3.1.9 AUDIO] Queue empty, leaving channel.');
         const channel = client.channels.cache.get(player.textId);
-        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v3.1.8)');
+        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v3.1.9)');
         player.destroy();
     });
   }

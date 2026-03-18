@@ -34,13 +34,13 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v3.1.8 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v3.1.9 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v3.1.8)
-  console.log('[v3.1.8] Calling player.init()...');
+  // Initialize Lavalink Audio Engine (v3.1.9)
+  console.log('[v3.1.9] Calling player.init()...');
   player.init(client);
-  console.log('[v3.1.8] player.init() call complete.');
+  console.log('[v3.1.9] player.init() call complete.');
 
   // CRITICAL INTENT CHECK
   const enabledIntents = Object.keys(GatewayIntentBits).filter(k => (client.options.intents & GatewayIntentBits[k]));
