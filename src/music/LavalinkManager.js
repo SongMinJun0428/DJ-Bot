@@ -59,6 +59,7 @@ class LavalinkManager {
     // Register nodes with delay to prevent 429
     console.log(`[v4.0.1] Registering ${Nodes.length} nodes (2s intervals)...`);
     console.log(`[v4.0.2] Registering ${Nodes.length} nodes (2s intervals)...`);
+    console.log(`[v4.0.3] Registering ${Nodes.length} nodes (2s intervals)...`);
     Nodes.forEach((node, index) => {
         setTimeout(() => {
             try {
@@ -71,25 +72,25 @@ class LavalinkManager {
                     auth: node.password,
                     url: `${node.host}:${node.port}`
                 });
-                console.log(`[v4.0.2] Added node: ${node.name}`);
+                console.log(`[v4.0.3] Added node: ${node.name}`);
             } catch (e) {
-                console.error(`[v4.0.2] Node error (${node.name}):`, e.message);
+                console.error(`[v4.0.3] Node error (${node.name}):`, e.message);
             }
         }, (index + 1) * 2000); 
     });
 
     // Node Event Logs
-    this.shoukaku.on('ready', (name) => console.log(`[v4.0.2] Node "${name}" is READY.`));
+    this.shoukaku.on('ready', (name) => console.log(`[v4.0.3] Node "${name}" is READY.`));
     this.shoukaku.on('error', (name, error) => {
         if (error.message && error.message.includes('429')) return; // Ignore 429 flood
-        console.error(`[v4.0.2] Node "${name}" error:`, error.message || error);
+        console.error(`[v4.0.3] Node "${name}" error:`, error.message || error);
     });
     this.shoukaku.on('debug', (name, info) => {
-        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v4.0.2 DEBUG] Node "${name}": ${info}`);
+        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v4.0.3 DEBUG] Node "${name}": ${info}`);
     });
     
     this.kazagumo.on('playerStart', (player, track) => {
-        console.log(`[v4.0.2 AUDIO] Playing: ${track.title}`);
+        console.log(`[v4.0.3 AUDIO] Playing: ${track.title}`);
         const channel = client.channels.cache.get(player.textId);
         if (channel) {
             const song = {

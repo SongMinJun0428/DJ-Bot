@@ -19,7 +19,7 @@ class MusicPlayer {
   async play(guildId, song, voiceChannel, textChannel) {
     try {
       if (!this.lavalink || !this.lavalink.shoukaku) {
-        return textChannel.send('⏳ 오디오 엔진 초기화 중입니다. 10초 뒤에 다시 시도해 주세요. (v4.0.2)');
+        return textChannel.send('⏳ 오디오 엔진 초기화 중입니다. 10초 뒤에 다시 시도해 주세요. (v4.0.3)');
       }
 
       // Check for node readiness
@@ -27,10 +27,10 @@ class MusicPlayer {
       const nodesArray = nodesMap ? Array.from(nodesMap.values()) : [];
       const readyNodes = nodesArray.filter(n => n.state === 1); 
       
-      console.log(`[v4.0.2] Audio attempt for guild ${guildId}. Found ${nodesArray.length} potential nodes, Ready: ${readyNodes.length}`);
+      console.log(`[v4.0.3] Audio attempt for guild ${guildId}. Found ${nodesArray.length} potential nodes, Ready: ${readyNodes.length}`);
 
       if (readyNodes.length === 0) {
-        let msg = `🛰️ 오디오 서버 연결 대기 중... (현재 연결된 서버: ${readyNodes.length}/${nodesArray.length}) (v4.0.2)`;
+        let msg = `🛰️ 오디오 서버 연결 대기 중... (현재 연결된 서버: ${readyNodes.length}/${nodesArray.length}) (v4.0.3)`;
         if (nodesArray.length === 0) msg += '\n⚠️ 서버 리스트가 비어 있습니다. 코드가 제대로 업로드되었는지 확인해 주세요.';
         else msg += '\n> 로그에 "Node is READY"가 뜰 때까지 잠시만 기다려 주세요.';
         

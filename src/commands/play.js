@@ -80,32 +80,18 @@ module.exports = {
         }
         const playResult = await this.addAndPlay(interaction, song, fromChannel);
         if (!fromChannel && interaction.deferred) {
-            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v4.0.2)`;
+            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v4.0.3)`;
             await interaction.editReply({ content }).catch(() => {});
         }
       } else {
-        console.log(`[v4.0.2] Searching for: ${query}`);
+        console.log(`[v4.0.3] Searching for: ${query}`);
         const searchResults = await play.search(query, { limit: 10 });
         if (searchResults.length === 0) {
             const msg = '검색 결과가 없습니다.';
             return fromChannel ? interaction.channel.send(msg) : interaction.editReply(msg);
         }
 
-        // AUTO-PLAY for dedicated channel
-        if (fromChannel) {
-            const selectedVideo = searchResults[0];
-            const song = {
-              title: selectedVideo.title,
-              url: selectedVideo.url,
-              thumbnail: selectedVideo.thumbnails[0].url,
-              durationRaw: selectedVideo.durationRaw,
-              author: selectedVideo.channel ? (selectedVideo.channel.name || 'Youtube') : 'Youtube',
-              isLocal: false
-            };
-            return await this.addAndPlay(interaction, song, true);
-        }
-
-        // Selection Menu for Slash Commands
+        // Selection Menu for ALL Contexts (Slash & Dedicated Channel)
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId('select_song')
           .setPlaceholder('음악을 재생하려면 선택하세요')

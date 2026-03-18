@@ -37,13 +37,13 @@ client.once(Events.ClientReady, async c => {
   console.log('--- [v4.0.2 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v4.0.2)
-  console.log('[v4.0.2] Calling player.init()...');
+  // Initialize Lavalink Audio Engine (v4.0.3)
+  console.log('[v4.0.3] Calling player.init()...');
   try {
     player.init(client);
-    console.log('[v4.0.2] player.init() call complete.');
+    console.log('[v4.0.3] player.init() call complete.');
   } catch (err) {
-    console.error('❌ [v4.0.2] FATAL: player.init() failed!', err);
+    console.error('❌ [v4.0.3] FATAL: player.init() failed!', err);
   }
 
   // CRITICAL INTENT CHECK
@@ -125,7 +125,10 @@ client.on(Events.InteractionCreate, async interaction => {
             getString: () => query,
             getAttachment: () => null 
           },
-          deferReply: () => Promise.resolve(),
+          deferReply: async (options) => { 
+              this.deferred = true; 
+              return Promise.resolve(); 
+          },
           followUp: (msg) => interaction.channel.send(msg),
           reply: (msg) => interaction.channel.send(msg),
           editReply: (msg) => interaction.editReply(msg),
@@ -176,8 +179,10 @@ client.on(Events.MessageCreate, async message => {
     // Treat message content as a search query
     // This will be handled by a helper function to play music
     const attachment = message.attachments.first();
-    if (attachment) console.log(`[v4.0.1] Attachment detected in music channel: ${attachment.name}`);
+    if (attachment) console.log(`[v4.0.3] Attachment detected in music channel: ${attachment.name}`);
     
+    let lastResponse = null;
+
     const interactionPlaceholder = { 
         guild: message.guild, 
         member: message.member, 
@@ -187,9 +192,23 @@ client.on(Events.MessageCreate, async message => {
             getString: () => message.content,
             getAttachment: () => attachment
         },
-        reply: (msg) => message.channel.send(msg),
-        followUp: (msg) => message.channel.send(msg),
-        deferred: false // interactionPlaceholder doesn't support deferReply easily here
+        reply: async (msg) => {
+            lastResponse = await message.channel.send(msg);
+            return lastResponse;
+        },
+        followUp: async (msg) => {
+            return await message.channel.send(msg);
+        },
+        deferReply: async () => {
+            this.deferred = true;
+            return Promise.resolve();
+        },
+        editReply: async (msg) => {
+            if (lastResponse) return await lastResponse.edit(msg);
+            lastResponse = await message.channel.send(msg);
+            return lastResponse;
+        },
+        deferred: false
     };
     const playCmd = client.commands.get('play');
     if (playCmd) playCmd.execute(interactionPlaceholder, true);
