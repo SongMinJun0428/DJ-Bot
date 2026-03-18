@@ -34,16 +34,16 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v4.0.2 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v4.0.4 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v4.0.3)
-  console.log('[v4.0.3] Calling player.init()...');
+  // Initialize Lavalink Audio Engine (v4.0.4)
+  console.log('[v4.0.4] Calling player.init()...');
   try {
     player.init(client);
-    console.log('[v4.0.3] player.init() call complete.');
+    console.log('[v4.0.4] player.init() call complete.');
   } catch (err) {
-    console.error('❌ [v4.0.3] FATAL: player.init() failed!', err);
+    console.error('❌ [v4.0.4] FATAL: player.init() failed!', err);
   }
 
   // CRITICAL INTENT CHECK
@@ -179,7 +179,7 @@ client.on(Events.MessageCreate, async message => {
     // Treat message content as a search query
     // This will be handled by a helper function to play music
     const attachment = message.attachments.first();
-    if (attachment) console.log(`[v4.0.3] Attachment detected in music channel: ${attachment.name}`);
+    if (attachment) console.log(`[v4.0.4] Attachment detected in music channel: ${attachment.name}`);
     
     let lastResponse = null;
 
