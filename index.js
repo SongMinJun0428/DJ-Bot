@@ -37,10 +37,14 @@ client.once(Events.ClientReady, async c => {
   console.log('--- [v3.1.9 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v3.1.9)
-  console.log('[v3.1.9] Calling player.init()...');
-  player.init(client);
-  console.log('[v3.1.9] player.init() call complete.');
+  // Initialize Lavalink Audio Engine (v3.1.10)
+  console.log('[v3.1.10] Calling player.init()...');
+  try {
+    player.init(client);
+    console.log('[v3.1.10] player.init() call complete.');
+  } catch (err) {
+    console.error('❌ [v3.1.10] FATAL: player.init() failed!', err);
+  }
 
   // CRITICAL INTENT CHECK
   const enabledIntents = Object.keys(GatewayIntentBits).filter(k => (client.options.intents & GatewayIntentBits[k]));

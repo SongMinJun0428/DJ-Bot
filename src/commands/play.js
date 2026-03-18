@@ -78,11 +78,11 @@ module.exports = {
         }
         const playResult = await this.addAndPlay(interaction, song, fromChannel);
         if (!fromChannel && interaction.deferred) {
-            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v3.1.9)`;
+            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v3.1.10)`;
             await interaction.editReply({ content }).catch(() => {});
         }
       } else {
-        console.log(`[v3.1.9] Searching for: ${query}`);
+        console.log(`[v3.1.10] Searching for: ${query}`);
         const searchResults = await play.search(query, { limit: 10 });
         if (searchResults.length === 0) {
             const msg = '검색 결과가 없습니다.';
@@ -134,12 +134,12 @@ module.exports = {
               await interaction.followUp({ content: playResult.message, ephemeral: true }).catch(() => {});
           }
         } catch (e) {
-          console.error('[v3.1.9] Selection timeout or error:', e);
+          console.error('[v3.1.10] Selection timeout or error:', e);
           interaction.editReply({ content: '선택 시간이 초과되었습니다.', components: [] }).catch(() => {});
         }
       }
     } catch (e) {
-      console.error('[v3.1.9] Play command Error:', e);
+      console.error('[v3.1.10] Play command Error:', e);
       const errMsg = '❌ 재생 중 오류가 발생했습니다.';
       if (fromChannel) interaction.channel.send(errMsg);
       else if (interaction.deferred) interaction.editReply(errMsg).catch(() => {});

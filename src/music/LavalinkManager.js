@@ -52,7 +52,7 @@ class LavalinkManager {
     this.client = client;
     
     const botId = client.user ? client.user.id : null;
-    console.log(`[v3.1.8] Initializing Kazagumo. Bot ID: ${botId}`);
+    console.log(`[v3.1.10] Initializing Kazagumo. Bot ID: ${botId}`);
     
     this.kazagumo = new Kazagumo({
       defaultSearchEngine: 'youtube',
@@ -69,21 +69,20 @@ class LavalinkManager {
 
     this.shoukaku = this.kazagumo.shoukaku;
     
-    // CRITICAL FIX: Manually bind the ID if Shoukaku missed it
     if (!this.shoukaku.id && botId) {
-        console.log(`[v3.1.9] Forcing Shoukaku ID to ${botId}`);
+        console.log(`[v3.1.10] Force setting Shoukaku ID: ${botId}`);
         this.shoukaku.id = botId;
     }
     if (this.shoukaku.connector && !this.shoukaku.connector.id && botId) {
         this.shoukaku.connector.id = botId;
     }
 
-    // Manually add nodes with minimal jitter to avoid 429
-    console.log(`[v3.1.9] Registering ${Nodes.length} nodes with jitter...`);
+    // Register nodes with delay to prevent 429
+    console.log(`[v3.1.10] Registering ${Nodes.length} nodes (1s intervals)...`);
     Nodes.forEach((node, index) => {
         setTimeout(() => {
             try {
-                const nodeConfig = {
+                this.shoukaku.addNode({
                     name: node.name,
                     host: node.host,
                     port: node.port,
@@ -91,32 +90,26 @@ class LavalinkManager {
                     secure: node.secure,
                     auth: node.password,
                     url: `${node.host}:${node.port}`
-                };
-                this.shoukaku.addNode(nodeConfig);
-                console.log(`[v3.1.9] Node added to queue (${index + 1}/${Nodes.length}): ${node.name}`);
+                });
+                console.log(`[v3.1.10] Added node: ${node.name}`);
             } catch (e) {
-                console.error(`[v3.1.9] Node error (${node.name}):`, e.message);
+                console.error(`[v3.1.10] Node error (${node.name}):`, e.message);
             }
-        }, index * 1000); // 1-second delay between each node to prevent rate limits
+        }, (index + 1) * 1000); 
     });
-
-    console.log(`[v3.1.9] Initialization complete. Current Nodes in Map: ${this.shoukaku.nodes.size}`);
 
     // Node Event Logs
-    this.shoukaku.on('ready', (name) => console.log(`[v3.1.9] Node "${name}" is READY.`));
+    this.shoukaku.on('ready', (name) => console.log(`[v3.1.10] Node "${name}" is READY.`));
     this.shoukaku.on('error', (name, error) => {
-        if (error.message && error.message.includes('429')) {
-            console.warn(`[v3.1.9] Node "${name}" is rate limited (429). Will retry automatically.`);
-        } else {
-            console.error(`[v3.1.9] Node "${name}" error:`, error.message || error);
-        }
+        if (error.message && error.message.includes('429')) return; // Ignore 429 flood
+        console.error(`[v3.1.10] Node "${name}" error:`, error.message || error);
     });
     this.shoukaku.on('debug', (name, info) => {
-        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v3.1.9 DEBUG] Node "${name}": ${info}`);
+        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v3.1.10 DEBUG] Node "${name}": ${info}`);
     });
     
     this.kazagumo.on('playerStart', (player, track) => {
-        console.log(`[v3.1.9 AUDIO] Playing: ${track.title}`);
+        console.log(`[v3.1.10 AUDIO] Playing: ${track.title}`);
         const channel = client.channels.cache.get(player.textId);
         if (channel) {
             const song = {
@@ -133,13 +126,13 @@ class LavalinkManager {
     });
 
     this.kazagumo.on('playerEnd', (player) => {
-        console.log('[v3.1.9 AUDIO] Track ended.');
+        console.log('[v3.1.10 AUDIO] Track ended.');
     });
 
     this.kazagumo.on('playerEmpty', (player) => {
-        console.log('[v3.1.9 AUDIO] Queue empty, leaving channel.');
+        console.log('[v3.1.10 AUDIO] Queue empty, leaving channel.');
         const channel = client.channels.cache.get(player.textId);
-        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v3.1.9)');
+        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v3.1.10)');
         player.destroy();
     });
   }
