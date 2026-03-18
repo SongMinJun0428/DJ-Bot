@@ -34,16 +34,16 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v4.0.9 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v4.1.0 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
   
-  // Initialize Lavalink Audio Engine (v4.0.9)
-  console.log('[v4.0.9] Calling player.init()...');
+  // Initialize Lavalink Audio Engine (v4.1.0)
+  console.log('[v4.1.0] Calling player.init()...');
   try {
     player.init(client);
-    console.log('[v4.0.9] player.init() call complete.');
+    console.log('[v4.1.0] player.init() call complete.');
   } catch (err) {
-    console.error('❌ [v4.0.9] FATAL: player.init() failed!', err);
+    console.error('❌ [v4.1.0] FATAL: player.init() failed!', err);
   }
 
   // CRITICAL INTENT CHECK
@@ -186,28 +186,16 @@ client.on(Events.MessageCreate, async message => {
     let lastResponse = null;
 
     const interactionPlaceholder = { 
-        guild: message.guild, 
-        member: message.member, 
-        channel: message.channel,
+        id: message.id,
+        user: message.author,
+        member: message.member,
+        guild: message.guild,
         guildId: message.guildId,
-        options: { 
+        channel: message.channel,
+        options: {
             getString: () => message.content,
             getAttachment: () => attachment
         },
-        reply: async (msg) => {
-            lastResponse = await message.channel.send(msg);
-            return lastResponse;
-        },
-        followUp: async (msg) => {
-            return await message.channel.send(msg);
-        },
-        deferReply: async () => {
-            this.deferred = true;
-            return Promise.resolve();
-        },
-        editReply: async (msg) => {
-            if (lastResponse) return await lastResponse.edit(msg);
-            lastResponse = await message.channel.send(msg);
             return lastResponse;
         },
         deferred: false

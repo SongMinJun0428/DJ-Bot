@@ -54,6 +54,7 @@ class LavalinkManager {
     console.log(`[v4.0.4] Registering ${Nodes.length} nodes (2s intervals)...`);
     console.log(`[v4.0.5] Registering ${Nodes.length} nodes (2s intervals)...`);
     console.log(`[v4.0.6] Registering ${Nodes.length} nodes (2s intervals)...`);
+    console.log(`[v4.1.0] Registering ${Nodes.length} nodes (2s intervals)...`);
     Nodes.forEach((node, index) => {
         setTimeout(() => {
             try {
@@ -66,25 +67,25 @@ class LavalinkManager {
                     auth: node.password,
                     url: `${node.host}:${node.port}`
                 });
-                console.log(`[v4.0.6] Added node: ${node.name}`);
+                console.log(`[v4.1.0] Added node: ${node.name}`);
             } catch (e) {
-                console.error(`[v4.0.6] Node error (${node.name}):`, e.message);
+                console.error(`[v4.1.0] Node error (${node.name}):`, e.message);
             }
         }, (index + 1) * 2000); 
     });
 
     // Node Event Logs
-    this.shoukaku.on('ready', (name) => console.log(`[v4.0.6] Node "${name}" is READY.`));
+    this.shoukaku.on('ready', (name) => console.log(`[v4.1.0] Node "${name}" is READY.`));
     this.shoukaku.on('error', (name, error) => {
         if (error.message && error.message.includes('429')) return; // Ignore 429 flood
-        console.error(`[v4.0.6] Node "${name}" error: silent.`);
+        console.error(`[v4.1.0] Node "${name}" error: silent.`);
     });
     this.shoukaku.on('debug', (name, info) => {
-        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v4.0.6 DEBUG] Node "${name}": ${info}`);
+        if (info.includes('Ready') || info.includes('Connect')) console.log(`[v4.1.0 DEBUG] Node "${name}": ${info}`);
     });
     
     this.kazagumo.on('playerStart', async (player, track) => {
-        console.log(`[v4.0.9 AUDIO] Playing: ${track.title}`);
+        console.log(`[v4.1.0 AUDIO] Playing: ${track.title}`);
         // Consolidate UI Refresh in client.refreshMusicInterface
         setTimeout(() => {
             client.refreshMusicInterface(player.guildId, track);
@@ -92,11 +93,14 @@ class LavalinkManager {
     });
 
     this.kazagumo.on('playerEnd', (player) => {
-        console.log('[v4.0.9 AUDIO] Track ended.');
+        console.log('[v4.1.0 AUDIO] Track ended.');
     });
 
     this.kazagumo.on('playerEmpty', async (player) => {
-        console.log('[v4.0.9 AUDIO] Queue empty');
+        console.log('[v4.1.0 AUDIO] Queue empty');
+        const guild = client.guilds.cache.get(player.guildId);
+        const channel = guild ? guild.channels.cache.get(player.textId) : null;
+        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v4.1.0)');
         // Final cleanup and dashboard return to bottom
         setTimeout(() => {
             client.refreshMusicInterface(player.guildId, null);
