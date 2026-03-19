@@ -30,9 +30,12 @@ class MusicPlayer {
       console.log(`[v4.1.3] Audio attempt for guild ${guildId}. Found ${nodesArray.length} potential nodes, Ready: ${readyNodes.length}`);
 
       if (readyNodes.length === 0) {
-        let msg = `🛰️ 오디오 서버 연결 대기 중... (현재 연결된 서버: ${readyNodes.length}/${nodesArray.length}) (v4.1.3)`;
-        if (nodesArray.length === 0) msg += '\n⚠️ 서버 리스트가 비어 있습니다. 코드가 제대로 업로드되었는지 확인해 주세요.';
-        else msg += '\n> 로그에 "Node is READY"가 뜰 때까지 잠시만 기다려 주세요.';
+        let msg = `📡 **오디오 서버 연결 시도 중...** (상태: ${readyNodes.length}/${nodesArray.length} 연결됨) (v4.1.4)`;
+        if (nodesArray.length === 0) {
+            msg += '\n⚠️ 서버 설정 오류가 발견되었습니다. 개발자에게 문의해 주세요.';
+        } else {
+            msg += '\n> 잠시만 기다려 주시면 자동으로 연결됩니다. (최대 10초 소요)';
+        }
         
         textChannel.send(msg);
         return { status: 'WAITING', message: msg };

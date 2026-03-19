@@ -4,17 +4,21 @@ const embeds = require('../utils/embeds');
 
 const Nodes = [
   {
+    name: 'Lavalink.lexis.host',
+    url: 'lavalink.lexis.host:443',
+    auth: 'lexishost',
+    secure: true
+  },
+  {
     name: 'Serenetia',
-    host: 'lavalinkv4.serenetia.com',
-    port: 443,
-    password: 'https://seretia.link/discord',
+    url: 'lavalink.serenetia.com:443',
+    auth: 'https://seretia.link/discord',
     secure: true
   },
   {
     name: 'AjieDev',
-    host: 'lava-v4.ajieblogs.eu.org',
-    port: 443,
-    password: 'https://dsc.gg/ajidevserver',
+    url: 'lava-v4.ajieblogs.eu.org:443',
+    auth: 'https://dsc.gg/ajidevserver',
     secure: true
   }
 ];
@@ -25,8 +29,6 @@ class LavalinkManager {
     this.embeds = embeds;
     
     const botId = client.user ? client.user.id : null;
-    console.log(`[v4.0.4] Initializing Kazagumo. Bot ID: ${botId}`);
-    
     this.kazagumo = new Kazagumo({
       defaultSearchEngine: 'youtube',
       send: (guildId, payload) => {
@@ -37,44 +39,36 @@ class LavalinkManager {
         id: botId, 
         moveOnDisconnect: true,
         resume: true,
-        reconnectTries: 5
+        reconnectTries: 10,
+        reconnectInterval: 5000
     });
 
     this.shoukaku = this.kazagumo.shoukaku;
-    
+
     if (!this.shoukaku.id && botId) {
-        console.log(`[v4.0.4] Force setting Shoukaku ID: ${botId}`);
+        console.log(`[v4.1.4] Force setting Shoukaku ID: ${botId}`);
         this.shoukaku.id = botId;
     }
     if (this.shoukaku.connector && !this.shoukaku.connector.id && botId) {
         this.shoukaku.connector.id = botId;
     }
 
-    // Register nodes with delay to prevent 429
-    console.log(`[v4.0.4] Registering ${Nodes.length} nodes (2s intervals)...`);
-    console.log(`[v4.0.5] Registering ${Nodes.length} nodes (2s intervals)...`);
-    console.log(`[v4.0.6] Registering ${Nodes.length} nodes (2s intervals)...`);
-    console.log(`[v4.1.0] Registering ${Nodes.length} nodes (2s intervals)...`);
-    console.log(`[v4.1.1] Registering ${Nodes.length} nodes (2s intervals)...`);
-    console.log(`[v4.1.2] Registering ${Nodes.length} nodes (2s intervals)...`);
-    console.log(`[v4.1.3] Registering ${Nodes.length} nodes (2s intervals)...`);
+    // Register nodes with short delay
+    console.log(`[v4.1.4] Registering ${Nodes.length} nodes...`);
     Nodes.forEach((node, index) => {
         setTimeout(() => {
             try {
                 this.shoukaku.addNode({
                     name: node.name,
-                    host: node.host,
-                    port: node.port,
-                    password: node.password,
-                    secure: node.secure,
-                    auth: node.password,
-                    url: `${node.host}:${node.port}`
+                    url: node.url,
+                    auth: node.auth,
+                    secure: node.secure
                 });
-                console.log(`[v4.1.3] Added node: ${node.name}`);
+                console.log(`[v4.1.4] Node add call: ${node.name}`);
             } catch (e) {
-                console.error(`[v4.1.3] Node error (${node.name}):`, e.message);
+                console.error(`[v4.1.4] Node error (${node.name}):`, e.message);
             }
-        }, (index + 1) * 2000); 
+        }, index * 1000); 
     });
 
     // Node Event Logs
