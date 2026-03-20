@@ -10,16 +10,22 @@ const Nodes = [
     secure: true
   },
   {
-    name: 'Serenetia',
-    url: 'lavalink.serenetia.com:443',
-    auth: 'https://seretia.link/discord',
+    name: 'AjieDev SSL',
+    url: 'lavalinkv4.serenetia.com:443',
+    auth: 'https://dsc.gg/ajidevserver',
     secure: true
   },
   {
-    name: 'AjieDev',
-    url: 'lava-v4.ajieblogs.eu.org:443',
+    name: 'AjieDev No-SSL',
+    url: 'lava-v4.ajieblogs.eu.org:80',
     auth: 'https://dsc.gg/ajidevserver',
-    secure: true
+    secure: false
+  },
+  {
+    name: 'DivaHost',
+    url: 'lavalink.divahost.net:60002',
+    auth: 'divahostv4',
+    secure: false
   }
 ];
 
