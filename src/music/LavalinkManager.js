@@ -12,13 +12,13 @@ const Nodes = [
   {
     name: 'AjieDev SSL',
     url: 'lavalinkv4.serenetia.com:443',
-    auth: 'https://dsc.gg/ajidevserver',
+    auth: 'https://seretia.link/discord',
     secure: true
   },
   {
     name: 'AjieDev No-SSL',
     url: 'lava-v4.ajieblogs.eu.org:80',
-    auth: 'https://dsc.gg/ajidevserver',
+    auth: 'https://seretia.link/discord',
     secure: false
   },
   {
@@ -26,6 +26,12 @@ const Nodes = [
     url: 'lavalink.divahost.net:60002',
     auth: 'divahostv4',
     secure: false
+  },
+  {
+    name: 'Backup-Node',
+    url: 'lavalink.oops.wtf:443',
+    auth: 'www.oops.wtf',
+    secure: true
   }
 ];
 
