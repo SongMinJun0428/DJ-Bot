@@ -176,23 +176,22 @@ client.on(Events.InteractionCreate, async interaction => {
           }
 
           const options = [];
+          let index = 1;
           
-          // 1. Add Favorites as the first option if not empty
           if (favs.length > 0) {
               options.push(
                   new StringSelectMenuOptionBuilder()
-                      .setLabel('❤️ 내 즐겨찾기 전체 재생')
+                      .setLabel(`${index++}. ❤️ 내 즐겨찾기 전체 재생`)
                       .setDescription(`${favs.length}곡 재생`)
                       .setValue('play_all_favorites')
               );
           }
 
-          // 2. Add Custom Playlists
           for (const p of playlists) {
               const songs = db.getPlaylistSongs(p.id);
               options.push(
                   new StringSelectMenuOptionBuilder()
-                      .setLabel(`📂 ${p.name}`)
+                      .setLabel(`${index++}. 📂 ${p.name}`)
                       .setDescription(`${songs.length}곡 재생`)
                       .setValue(`play_custom_playlist_${p.id}`)
               );
@@ -200,14 +199,11 @@ client.on(Events.InteractionCreate, async interaction => {
 
           const selectMenu = new StringSelectMenuBuilder()
               .setCustomId('playlist_play_menu_select')
-              .setPlaceholder('재생할 리스트를 선택하세요')
+              .setPlaceholder('재생할 리스트의 번호를 선택하세요')
               .addOptions(options.slice(0, 25));
 
           const row = new ActionRowBuilder().addComponents(selectMenu);
-          const embed = new EmbedBuilder()
-              .setColor('#BFA054')
-              .setTitle('▶️ 플레이리스트 빠른 재생')
-              .setDescription('저장해두신 음악 목록입니다.\n버튼을 선택하면 즉시 재생을 시작합니다.');
+          const embed = embeds.createPlaylistSelectEmbed(playlists, favs.length);
 
           return interaction.reply({ embeds: [embed], components: [row], flags: [MessageFlags.Ephemeral] });
       }
@@ -309,6 +305,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 new ButtonBuilder().setCustomId('btn_popular').setLabel('🔥 인기차트').setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId('btn_billboard').setLabel('🎶 빌보드').setStyle(ButtonStyle.Primary),
                 new ButtonBuilder().setCustomId('btn_recent_list').setLabel('✨ 최근곡').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId('btn_madmovie').setLabel('🎬 매드무비 BGM').setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId('btn_favorites').setLabel('❤️ 즐겨찾기').setStyle(ButtonStyle.Danger)
               );
 

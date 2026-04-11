@@ -89,9 +89,8 @@ module.exports = {
     const row2 = new ActionRowBuilder()
       .addComponents(
         new ButtonBuilder().setCustomId('btn_search').setLabel('🔍 곡 검색/주소 입력').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('btn_playlist_play').setLabel('▶️ 플레이리스트 재생').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('btn_playlist_play').setLabel('📂 플레이리스트 선택/재생').setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId('btn_recent').setLabel('✨ 최신곡').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('btn_favorites').setLabel('❤️ 보관함').setStyle(ButtonStyle.Danger),
         new ButtonBuilder().setCustomId('btn_autoplay').setLabel(`🎧 자동재생: ${autoplayStatus}`).setStyle(ButtonStyle.Secondary)
       );
 
@@ -131,6 +130,29 @@ module.exports = {
       .setTitle(`🔍 『 ${title} 』`)
       .setDescription(description)
       .setThumbnail(results[0].thumbnails ? results[0].thumbnails[0].url : (results[0].thumbnail || null))
+      .setTimestamp();
+  },
+
+  createPlaylistSelectEmbed: (playlists, favsCount) => {
+    let description = '';
+    let index = 1;
+
+    if (favsCount > 0) {
+      description += `\`${index++}.\` ❤️ **내 즐겨찾기 전체 재생** (${favsCount}곡)\n`;
+    }
+
+    if (playlists.length > 0) {
+      description += playlists.map(p => `\`${index++}.\` 📂 **${p.name}**`).join('\n');
+    }
+
+    if (!description) description = '*아직 생성된 플레이리스트나 즐겨찾기가 없습니다.*';
+
+    return new EmbedBuilder()
+      .setColor('#BFA054')
+      .setTitle('📂 『 내 음악 보관함 선택 』')
+      .setDescription(description)
+      .setThumbnail('https://i.imgur.com/vHdfyC7.png')
+      .setFooter({ text: '💡 아래 메뉴에서 재생할 리스트의 번호를 선택하세요.' })
       .setTimestamp();
   }
 };

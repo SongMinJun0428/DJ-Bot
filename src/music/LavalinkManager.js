@@ -114,69 +114,90 @@ class LavalinkManager {
     });
 
     this.kazagumo.on('playerEmpty', async (player) => {
-        console.log('[v4.1.5 AUDIO] Queue empty');
+        console.log(`[v4.1.6 AUTOPLAY] Queue empty in guild: ${player.guildId}`);
         const db = require('../db/database');
         const config = db.getGuildConfig(player.guildId);
         
-        // 1. AUTOPLAY LOGIC (Default to ON if config missing or explicitly set to 1)
+        // 1. AUTOPLAY LOGIC (Explicit check with default ON)
         const isAutoplayEnabled = (config?.autoplay ?? 1) === 1;
+        console.log(`[v4.1.6 AUTOPLAY] Status: ${isAutoplayEnabled ? 'ENABLED' : 'DISABLED'}`);
 
         if (isAutoplayEnabled && player.previousTrack) {
             const lastTrack = player.previousTrack;
-            const channel = client.channels.cache.get(player.textId);
+            console.log(`[v4.1.6 AUTOPLAY] Last track: ${lastTrack.title} (${lastTrack.author})`);
+
+            // Robust Channel Fetching
+            let channel = this.client.channels.cache.get(player.textId);
+            if (!channel) {
+                console.log(`[v4.1.6 AUTOPLAY] Channel not in cache, fetching: ${player.textId}`);
+                channel = await this.client.channels.fetch(player.textId).catch(() => null);
+            }
             
             if (channel) {
                 const searchMsg = await channel.send('✨ 대기열이 비어있습니다. **자동 추천 곡**을 검색하는 중...');
                 
-                // Advanced search: Try artist mix first, then title mix
+                // Diversified search strategy
                 const queries = [
                     `ytsearch:${lastTrack.author} ${lastTrack.title} mix`,
-                    `ytsearch:${lastTrack.author} top tracks`,
+                    `ytmsearch:${lastTrack.author} top tracks`, // YouTube Music fallback
                     `ytsearch:${lastTrack.title} related`
                 ];
 
                 let nextTrack = null;
                 for (const query of queries) {
                     try {
-                        const result = await this.kazagumo.search(query, { requester: client.user });
+                        console.log(`[v4.1.6 AUTOPLAY] Searching query: ${query}`);
+                        const result = await this.kazagumo.search(query, { requester: this.client.user });
                         if (result && result.tracks.length > 0) {
-                            // Find a track that isn't the one that just ended
                             nextTrack = result.tracks.find(t => t.uri !== lastTrack.uri && t.title !== lastTrack.title) || result.tracks[0];
-                            if (nextTrack) break;
+                            if (nextTrack) {
+                                console.log(`[v4.1.6 AUTOPLAY] Found: ${nextTrack.title}`);
+                                break;
+                            }
                         }
                     } catch (e) {
-                        console.error(`[v4.1.5] Autoplay Search Error (${query}):`, e.message);
+                        console.error(`[v4.1.6 AUTOPLAY] Search error (${query}):`, e.message);
                     }
                 }
                 
                 if (nextTrack) {
                     player.queue.add(nextTrack);
-                    // Slight delay to ensure player state is ready
-                    setTimeout(() => {
-                        if (player.queue.length > 0) player.play();
-                    }, 500);
+                    
+                    // Controlled delay to ensure player and node state sync
+                    setTimeout(async () => {
+                        try {
+                            if (player.queue.length > 0) {
+                                await player.play();
+                                console.log(`[v4.1.6 AUTOPLAY] Success: Play started.`);
+                            }
+                        } catch (err) {
+                            console.error(`[v4.1.6 AUTOPLAY] Play call error:`, err.message);
+                        }
+                    }, 1000);
                     
                     await searchMsg.edit(`✨ [${nextTrack.title}] 곡을 자동 추천 시스템이 찾아냈습니다! 🎶`).catch(() => {});
-                    setTimeout(() => searchMsg.delete().catch(() => {}), 5000);
-                    return; // EXIT playerEmpty - keep player alive
+                    setTimeout(() => searchMsg.delete().catch(() => {}), 10000);
+                    return; // EXIT - Keep player alive
                 } else {
+                    console.log(`[v4.1.6 AUTOPLAY] Failure: No tracks found.`);
                     await searchMsg.edit('❌ 더 이상 추천할 만한 곡을 찾지 못했습니다.').catch(() => {});
-                    setTimeout(() => searchMsg.delete().catch(() => {}), 3000);
+                    setTimeout(() => searchMsg.delete().catch(() => {}), 5000);
                 }
+            } else {
+                console.error(`[v4.1.6 AUTOPLAY] Error: Could not find channel ${player.textId}`);
             }
         }
 
-        const guild = client.guilds.cache.get(player.guildId);
+        // Cleanup if Autoplay fails or is disabled
+        const guild = this.client.guilds.cache.get(player.guildId);
         const channel = guild ? guild.channels.cache.get(player.textId) : null;
         if (channel) {
-            const emptyMsg = await channel.send('🎵 대기열이 비어있어 채널을 나갑니다.');
-            setTimeout(() => {
-                emptyMsg.delete().catch(() => {});
-            }, 60000);
+            const emptyMsg = await channel.send('🎵 대기열이 비어있어 플레이어를 종료합니다.');
+            setTimeout(() => emptyMsg.delete().catch(() => {}), 30000);
         }
         
         setTimeout(() => {
-            client.refreshMusicInterface(player.guildId, null);
+            this.client.refreshMusicInterface(player.guildId, null);
         }, 1500);
         player.destroy();
     });
