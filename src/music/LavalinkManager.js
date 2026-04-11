@@ -58,7 +58,7 @@ class LavalinkManager {
     this.shoukaku = this.kazagumo.shoukaku;
 
     if (!this.shoukaku.id && botId) {
-        console.log(`[v4.1.4] Force setting Shoukaku ID: ${botId}`);
+        console.log(`[v4.2.0 AUDIO] Force setting Shoukaku ID: ${botId}`);
         this.shoukaku.id = botId;
     }
     if (this.shoukaku.connector && !this.shoukaku.connector.id && botId) {
@@ -114,7 +114,7 @@ class LavalinkManager {
     });
 
     this.kazagumo.on('playerEmpty', async (player) => {
-        console.log(`[v4.1.6 AUTOPLAY] Queue empty in guild: ${player.guildId}`);
+        console.log(`[v4.2.0 AUTOPLAY] Queue empty in guild: ${player.guildId}`);
         const db = require('../db/database');
         const config = db.getGuildConfig(player.guildId);
         
