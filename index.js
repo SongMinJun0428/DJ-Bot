@@ -155,12 +155,20 @@ client.on(Events.InteractionCreate, async interaction => {
           }
           break;
         case 'player_skip':
-          queue.skip();
-          await interaction.reply({ content: '⏭️ 건너김', flags: [MessageFlags.Ephemeral] });
+          if (queue.queue.length === 0) {
+            await interaction.reply({ content: '⏭️ 다음 곡이 없어 재생을 중지하고 퇴장합니다.', flags: [MessageFlags.Ephemeral] });
+            // Manual destroy since skip on last song may not trigger playerEmpty reliably
+            queue.destroy();
+            setTimeout(() => refreshMusicInterface(interaction.guildId, null), 1000);
+          } else {
+            queue.skip();
+            await interaction.reply({ content: '⏭️ 다음 곡으로 넘어갑니다.', flags: [MessageFlags.Ephemeral] });
+          }
           break;
         case 'player_stop':
           queue.destroy();
-          await interaction.reply({ content: '⏹️ 정지됨', flags: [MessageFlags.Ephemeral] });
+          await interaction.reply({ content: '⏹️ 재생을 중지하고 퇴장합니다.', flags: [MessageFlags.Ephemeral] });
+          setTimeout(() => refreshMusicInterface(interaction.guildId, null), 1000);
           break;
         case 'player_repeat':
           const loopMode = queue.loop === 'track' ? 'none' : 'track';

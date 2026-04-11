@@ -109,7 +109,13 @@ class LavalinkManager {
         console.log('[v4.1.3 AUDIO] Queue empty');
         const guild = client.guilds.cache.get(player.guildId);
         const channel = guild ? guild.channels.cache.get(player.textId) : null;
-        if (channel) channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v4.1.3)');
+        if (channel) {
+            const emptyMsg = await channel.send('🎵 대기열이 비어있어 채널을 나갑니다. (v4.1.5)');
+            // Auto-delete after 1 minute as requested
+            setTimeout(() => {
+                emptyMsg.delete().catch(() => {});
+            }, 60000);
+        }
         // Final cleanup and dashboard return to bottom
         setTimeout(() => {
             client.refreshMusicInterface(player.guildId, null);
