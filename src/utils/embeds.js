@@ -33,7 +33,7 @@ module.exports = {
   },
 
   createNowPlayingEmbed: (track, kazagumoPlayer = null) => {
-    const totalMs = track.duration || 0;
+    const totalMs = track.length || 0;
     const currentMs = kazagumoPlayer ? kazagumoPlayer.position : 0;
     const remainingMs = Math.max(0, totalMs - currentMs);
 

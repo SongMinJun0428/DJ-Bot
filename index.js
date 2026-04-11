@@ -381,15 +381,18 @@ client.on(Events.InteractionCreate, async interaction => {
             });
         }
 
-        const playCmd = client.commands.get('play');
         for (const song of songsToPlay) {
-            const result = await player.manager.search(song.url, { requester: interaction.user });
-            if (result && result.tracks.length > 0) {
-                queue.queue.add(result.tracks[0]);
+            try {
+                // Use the robust player.play method which handles engine readiness and search
+                await player.play(interaction.guildId, { 
+                    title: song.title, 
+                    url: song.url, 
+                    requester: interaction.user 
+                }, interaction.member.voice.channel, interaction.channel);
+            } catch (err) {
+                console.error(`[v4.2.0] Playlist Load Error (${song.title}):`, err.message);
             }
         }
-
-        if (!queue.playing && !queue.paused) await queue.play();
         
         // Unified UI Refresh (v4.1.3)
         setTimeout(() => {
