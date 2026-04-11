@@ -82,13 +82,16 @@ module.exports = {
         new ButtonBuilder().setCustomId('btn_popular').setLabel('🔥 인기차트').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('btn_billboard').setLabel('🎶 빌보드').setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId('btn_top10').setLabel('📊 서버 차트').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('btn_recent_list').setLabel('✨ 최근 감상곡').setStyle(ButtonStyle.Primary)
+        new ButtonBuilder().setCustomId('btn_recent_list').setLabel('✨ 최근 감상곡').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('btn_madmovie').setLabel('🎬 매드무비 BGM').setStyle(ButtonStyle.Success)
       );
 
     const row2 = new ActionRowBuilder()
       .addComponents(
         new ButtonBuilder().setCustomId('btn_search').setLabel('🔍 곡 검색/주소 입력').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('btn_favorites').setLabel('❤️ 내 보관함').setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId('btn_playlist_play').setLabel('▶️ 플레이리스트 재생').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('btn_recent').setLabel('✨ 최신곡').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('btn_favorites').setLabel('❤️ 보관함').setStyle(ButtonStyle.Danger),
         new ButtonBuilder().setCustomId('btn_autoplay').setLabel(`🎧 자동재생: ${autoplayStatus}`).setStyle(ButtonStyle.Secondary)
       );
 

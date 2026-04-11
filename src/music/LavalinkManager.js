@@ -114,30 +114,51 @@ class LavalinkManager {
     });
 
     this.kazagumo.on('playerEmpty', async (player) => {
-        console.log('[v4.1.3 AUDIO] Queue empty');
+        console.log('[v4.1.5 AUDIO] Queue empty');
         const db = require('../db/database');
         const config = db.getGuildConfig(player.guildId);
         
-        // 1. AUTOPLAY LOGIC
-        if (config?.autoplay === 1 && player.previousTrack) {
+        // 1. AUTOPLAY LOGIC (Default to ON if config missing or explicitly set to 1)
+        const isAutoplayEnabled = (config?.autoplay ?? 1) === 1;
+
+        if (isAutoplayEnabled && player.previousTrack) {
             const lastTrack = player.previousTrack;
             const channel = client.channels.cache.get(player.textId);
             
             if (channel) {
                 const searchMsg = await channel.send('✨ 대기열이 비어있습니다. **자동 추천 곡**을 검색하는 중...');
                 
-                // Search for related: "last artist" or "mix"
-                const query = `ytsearch:${lastTrack.author} mix`; 
-                const result = await this.kazagumo.search(query, { requester: client.user });
+                // Advanced search: Try artist mix first, then title mix
+                const queries = [
+                    `ytsearch:${lastTrack.author} ${lastTrack.title} mix`,
+                    `ytsearch:${lastTrack.author} top tracks`,
+                    `ytsearch:${lastTrack.title} related`
+                ];
+
+                let nextTrack = null;
+                for (const query of queries) {
+                    try {
+                        const result = await this.kazagumo.search(query, { requester: client.user });
+                        if (result && result.tracks.length > 0) {
+                            // Find a track that isn't the one that just ended
+                            nextTrack = result.tracks.find(t => t.uri !== lastTrack.uri && t.title !== lastTrack.title) || result.tracks[0];
+                            if (nextTrack) break;
+                        }
+                    } catch (e) {
+                        console.error(`[v4.1.5] Autoplay Search Error (${query}):`, e.message);
+                    }
+                }
                 
-                if (result && result.tracks.length > 1) {
-                    const nextTrack = result.tracks.find(t => t.uri !== lastTrack.uri) || result.tracks[1];
+                if (nextTrack) {
                     player.queue.add(nextTrack);
-                    player.play();
+                    // Slight delay to ensure player state is ready
+                    setTimeout(() => {
+                        if (player.queue.length > 0) player.play();
+                    }, 500);
                     
                     await searchMsg.edit(`✨ [${nextTrack.title}] 곡을 자동 추천 시스템이 찾아냈습니다! 🎶`).catch(() => {});
                     setTimeout(() => searchMsg.delete().catch(() => {}), 5000);
-                    return; // Don't destroy player
+                    return; // EXIT playerEmpty - keep player alive
                 } else {
                     await searchMsg.edit('❌ 더 이상 추천할 만한 곡을 찾지 못했습니다.').catch(() => {});
                     setTimeout(() => searchMsg.delete().catch(() => {}), 3000);

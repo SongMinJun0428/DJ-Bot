@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, Events, REST, Routes, MessageFlags, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, Events, REST, Routes, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const player = require('./src/music/Player');
@@ -108,6 +108,7 @@ client.on(Events.InteractionCreate, async interaction => {
         case 'btn_popular': query = '인기차트'; break;
         case 'btn_billboard': query = '빌보드 차트'; break;
         case 'btn_recent': query = '최신곡'; break;
+        case 'btn_madmovie': query = '매드무비 브금'; break;
         
         case 'btn_top10':
           const topSongs = db.getTopSongs(interaction.guildId);
@@ -160,11 +161,56 @@ client.on(Events.InteractionCreate, async interaction => {
           editReply: (msg) => interaction.editReply(msg),
           deferred: true
         };
-        await playCmd.execute(mockInteraction, true);
-        return interaction.editReply({ content: `🔍 **${query}** 테마 재생 시작.` });
+          await playCmd.execute(mockInteraction, true);
+          return; // Allow playCmd.execute to handle its own selection UI
+        }
+        return;
       }
-      return;
-    }
+
+      if (interaction.customId === 'btn_playlist_play') {
+          const playlists = db.getPlaylists(interaction.user.id);
+          const favs = db.getFavorites(interaction.user.id);
+          
+          if (playlists.length === 0 && favs.length === 0) {
+              return interaction.reply({ content: '❌ 재생할 플레이리스트나 즐겨찾기가 없습니다.', flags: [MessageFlags.Ephemeral] });
+          }
+
+          const options = [];
+          
+          // 1. Add Favorites as the first option if not empty
+          if (favs.length > 0) {
+              options.push(
+                  new StringSelectMenuOptionBuilder()
+                      .setLabel('❤️ 내 즐겨찾기 전체 재생')
+                      .setDescription(`${favs.length}곡 재생`)
+                      .setValue('play_all_favorites')
+              );
+          }
+
+          // 2. Add Custom Playlists
+          for (const p of playlists) {
+              const songs = db.getPlaylistSongs(p.id);
+              options.push(
+                  new StringSelectMenuOptionBuilder()
+                      .setLabel(`📂 ${p.name}`)
+                      .setDescription(`${songs.length}곡 재생`)
+                      .setValue(`play_custom_playlist_${p.id}`)
+              );
+          }
+
+          const selectMenu = new StringSelectMenuBuilder()
+              .setCustomId('playlist_play_menu_select')
+              .setPlaceholder('재생할 리스트를 선택하세요')
+              .addOptions(options.slice(0, 25));
+
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+          const embed = new EmbedBuilder()
+              .setColor('#BFA054')
+              .setTitle('▶️ 플레이리스트 빠른 재생')
+              .setDescription('저장해두신 음악 목록입니다.\n버튼을 선택하면 즉시 재생을 시작합니다.');
+
+          return interaction.reply({ embeds: [embed], components: [row], flags: [MessageFlags.Ephemeral] });
+      }
 
     // 2. Player control buttons (require an active queue)
     if (!queue) return interaction.reply({ content: '현재 재생 중인 음악이 없습니다.', flags: [MessageFlags.Ephemeral] });
@@ -242,7 +288,6 @@ client.on(Events.InteractionCreate, async interaction => {
               return interaction.reply({ content: '❌ 먼저 `/playlist create` 명령어로 플레이리스트를 생성해 주세요.', flags: [MessageFlags.Ephemeral] });
             }
             
-            const { StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
             const select = new StringSelectMenuBuilder()
               .setCustomId('playlist_add_select')
               .setPlaceholder('추가할 플레이리스트를 선택하세요')
@@ -259,7 +304,6 @@ client.on(Events.InteractionCreate, async interaction => {
             await interaction.reply({ embeds: [selectEmbed], components: [selectRow], flags: [MessageFlags.Ephemeral] });
             break;
         case 'player_explore':
-            const { ButtonBuilder, ButtonStyle } = require('discord.js');
             const exploreRow = new ActionRowBuilder()
               .addComponents(
                 new ButtonBuilder().setCustomId('btn_popular').setLabel('🔥 인기차트').setStyle(ButtonStyle.Success),
@@ -297,6 +341,63 @@ client.on(Events.InteractionCreate, async interaction => {
       const playlistName = playlists.find(p => p.id.toString() === playlistId)?.name || '플레이리스트';
       
       await interaction.update({ content: `✅ **${track.title}** 곡이 **${playlistName}**에 추가되었습니다!`, components: [] });
+    }
+
+    if (interaction.customId === 'playlist_play_menu_select') {
+        const selection = interaction.values[0];
+        let songsToPlay = [];
+        let listName = '';
+
+        if (!interaction.member.voice.channel) {
+            return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', flags: [MessageFlags.Ephemeral] });
+        }
+
+        if (selection === 'play_all_favorites') {
+            const favs = db.getFavorites(interaction.user.id);
+            songsToPlay = favs.map(f => ({ title: f.title, url: f.url }));
+            listName = '❤️ 내 즐겨찾기';
+        } else if (selection.startsWith('play_custom_playlist_')) {
+            const playlistId = selection.replace('play_custom_playlist_', '');
+            const playlists = db.getPlaylists(interaction.user.id);
+            const playlist = playlists.find(p => p.id.toString() === playlistId);
+            if (playlist) {
+                const songs = db.getPlaylistSongs(playlist.id);
+                songsToPlay = songs.map(s => ({ title: s.title, url: s.url }));
+                listName = `📂 ${playlist.name}`;
+            }
+        }
+
+        if (songsToPlay.length === 0) {
+            return interaction.reply({ content: '❌ 리스트가 비어있습니다.', flags: [MessageFlags.Ephemeral] });
+        }
+
+        await interaction.update({ content: `🎶 **${listName}** (${songsToPlay.length}곡) 재생을 준비 중입니다...`, embeds: [], components: [] });
+
+        let queue = player.getQueue(interaction.guildId);
+        if (!queue) {
+            queue = await player.manager.createPlayer({
+                guildId: interaction.guildId,
+                voiceId: interaction.member.voice.channel.id,
+                textId: interaction.channel.id,
+                deaf: true,
+                volume: 50
+            });
+        }
+
+        const playCmd = client.commands.get('play');
+        for (const song of songsToPlay) {
+            const result = await player.manager.search(song.url, { requester: interaction.user });
+            if (result && result.tracks.length > 0) {
+                queue.queue.add(result.tracks[0]);
+            }
+        }
+
+        if (!queue.playing && !queue.paused) await queue.play();
+        
+        // Unified UI Refresh (v4.1.3)
+        setTimeout(() => {
+            client.refreshMusicInterface(interaction.guildId, queue.queue.current);
+        }, 3000);
     }
   }
 });
