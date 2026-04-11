@@ -48,11 +48,13 @@ class MusicPlayer {
           guildId: guildId,
           voiceId: voiceChannel.id,
           textId: textChannel.id,
-          deaf: true
+          deaf: true,
+          volume: 50
         });
         console.log(`[v3.1.14] Created new Lavalink player for guild ${guildId}`);
       }
 
+      const db = require('../db/database');
       const result = await this.manager.search(song.url || song.title, { requester: song.requester });
       
       if (!result || !result.tracks.length) {
@@ -60,12 +62,18 @@ class MusicPlayer {
       }
 
       if (result.type === 'PLAYLIST') {
-          for (const track of result.tracks) player.queue.add(track);
+          for (const track of result.tracks) {
+              player.queue.add(track);
+              db.incrementStat(guildId, track.uri, track.title);
+          }
           textChannel.send(`🎵 **${result.playlistName}** (${result.tracks.length}곡)을 대기열에 추가했습니다.`);
       } else {
-          player.queue.add(result.tracks[0]);
+          const track = result.tracks[0];
+          player.queue.add(track);
+          db.incrementStat(guildId, track.uri, track.title);
+          
           if (player.playing || player.paused) {
-              textChannel.send(`🎵 **${result.tracks[0].title}** 곡이 대기열에 추가되었습니다.`);
+              textChannel.send(`🎵 **${track.title}** 곡이 대기열에 추가되었습니다.`);
           }
       }
 

@@ -22,7 +22,7 @@ module.exports = {
   async execute(interaction, fromChannel = false) {
     const attachment = interaction.options ? (interaction.options.getAttachment ? interaction.options.getAttachment('file') : null) : null;
     let query = interaction.options ? (interaction.options.getString('query') || (typeof interaction.options.getString === 'function' ? interaction.options.getString('query') : interaction.options.getString)) : null;
-    
+
     // Support for interaction placeholders (text channel messages)
     if (!query && !attachment && interaction.content) query = interaction.content;
 
@@ -49,68 +49,68 @@ module.exports = {
       if (query.startsWith('http')) {
         let song;
         if (attachment || query.includes('cdn.discordapp.com')) {
-            song = {
-                title: attachment ? attachment.name : '업로드 파일',
-                url: query,
-                thumbnail: 'https://i.imgur.com/vHdfyC7.png',
-                durationRaw: '파일 재생',
-                author: member.displayName,
-                isLocal: false,
-                requester: interaction.user
-            };
+          song = {
+            title: attachment ? attachment.name : '업로드 파일',
+            url: query,
+            thumbnail: 'https://i.imgur.com/vHdfyC7.png',
+            durationRaw: '파일 재생',
+            author: member.displayName,
+            isLocal: false,
+            requester: interaction.user
+          };
         } else {
-            console.log(`[v4.1.3] Fetching video info for: ${query}`);
-            let videoInfo = null;
-            try {
-                const result = await musicPlayer.manager.search(query);
-                if (result && result.tracks && result.tracks.length > 0) {
-                    videoInfo = result.tracks[0];
-                }
-            } catch (err) {
-                console.error('[v4.1.3] Lavalink Video Info Error:', err.message);
+          console.log(`[v4.1.3] Fetching video info for: ${query}`);
+          let videoInfo = null;
+          try {
+            const result = await musicPlayer.manager.search(query);
+            if (result && result.tracks && result.tracks.length > 0) {
+              videoInfo = result.tracks[0];
             }
+          } catch (err) {
+            console.error('[v4.1.3] Lavalink Video Info Error:', err.message);
+          }
 
-            if (!videoInfo) {
-              const errMsg = '❌ 유효하지 않은 주소거나 로드 실패 (Lavalink).';
-              return fromChannel ? interaction.channel.send(errMsg) : interaction.editReply(errMsg);
-            }
+          if (!videoInfo) {
+            const errMsg = '❌ 유효하지 않은 주소거나 로드 실패 (Lavalink).';
+            return fromChannel ? interaction.channel.send(errMsg) : interaction.editReply(errMsg);
+          }
 
-            song = {
-                title: videoInfo.title,
-                url: videoInfo.uri,
-                thumbnail: videoInfo.thumbnail || 'https://i.imgur.com/vHdfyC7.png',
-                durationRaw: videoInfo.isStream ? 'LIVE' : new Date(videoInfo.length || 0).toISOString().substr(11, 8),
-                author: videoInfo.author || 'Youtube',
-                isLocal: false,
-                requester: interaction.user
-            };
+          song = {
+            title: videoInfo.title,
+            url: videoInfo.uri,
+            thumbnail: videoInfo.thumbnail || 'https://i.imgur.com/vHdfyC7.png',
+            durationRaw: videoInfo.isStream ? 'LIVE' : new Date(videoInfo.length || 0).toISOString().substr(11, 8),
+            author: videoInfo.author || 'Youtube',
+            isLocal: false,
+            requester: interaction.user
+          };
         }
         const playResult = await this.addAndPlay(interaction, song, fromChannel);
         if (!fromChannel && interaction.deferred) {
-            const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v4.1.2)`;
-            await interaction.editReply({ content }).catch(() => {});
+          const content = playResult && playResult.status === 'WAITING' ? playResult.message : `✅ **${song.title}** 처리가 시작되었습니다. (v4.1.2)`;
+          await interaction.editReply({ content }).catch(() => { });
         }
       } else {
         console.log(`[v4.1.2] Searching for: ${query}`);
         let searchResults = [];
         try {
-            const result = await musicPlayer.manager.search(query);
-            if (result && result.tracks) {
-                searchResults = result.tracks.slice(0, 10).map(t => ({
-                    title: t.title,
-                    url: t.uri,
-                    durationRaw: t.isStream ? 'LIVE' : new Date(t.length || 0).toISOString().substr(11, 8),
-                    channel: { name: t.author || 'Youtube' },
-                    thumbnails: [{ url: t.thumbnail || 'https://i.imgur.com/vHdfyC7.png' }]
-                }));
-            }
+          const result = await musicPlayer.manager.search(query);
+          if (result && result.tracks) {
+            searchResults = result.tracks.slice(0, 10).map(t => ({
+              title: t.title,
+              url: t.uri,
+              durationRaw: t.isStream ? 'LIVE' : new Date(t.length || 0).toISOString().substr(11, 8),
+              channel: { name: t.author || 'Youtube' },
+              thumbnails: [{ url: t.thumbnail || 'https://i.imgur.com/vHdfyC7.png' }]
+            }));
+          }
         } catch (searchError) {
-            console.error('[v4.1.2] Lavalink Search Error:', searchError);
+          console.error('[v4.1.2] Lavalink Search Error:', searchError);
         }
-        
+
         if (searchResults.length === 0) {
-            const msg = '검색 결과가 없습니다.';
-            return fromChannel ? interaction.channel.send(msg) : interaction.editReply(msg);
+          const msg = '검색 결과가 없습니다.';
+          return fromChannel ? interaction.channel.send(msg) : interaction.editReply(msg);
         }
 
         // Selection Menu for ALL Contexts (Slash & Dedicated Channel)
@@ -125,15 +125,15 @@ module.exports = {
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
         const searchEmbed = embeds.createSearchEmbed(searchResults, query);
-        
-        const response = await interaction.editReply({ 
-            embeds: [searchEmbed], 
-            components: [row] 
+
+        const response = await interaction.editReply({
+          embeds: [searchEmbed],
+          components: [row]
         });
 
         const filter = i => i.customId === 'select_song' && i.user.id === member.id;
         try {
-          const confirmation = await response.awaitMessageComponent({ filter, time: 30000 });
+          const confirmation = await response.awaitMessageComponent({ filter, time: 60000 });
           const selectedVideo = searchResults.find(v => v.url === confirmation.values[0]);
           const song = {
             title: selectedVideo.title,
@@ -145,28 +145,28 @@ module.exports = {
             requester: interaction.user
           };
           await confirmation.update({ content: `✅ **${song.title}** 선택됨! (v4.1.3)`, embeds: [], components: [] });
-          
+
           // Auto-delete the select menu message after a short delay (v4.1.3)
           setTimeout(() => {
-              response.delete().catch(() => {});
+            response.delete().catch(() => { });
           }, 2000);
 
           const playResult = await this.addAndPlay(interaction, song, false);
           if (playResult && playResult.status === 'WAITING') {
-              await interaction.followUp({ content: playResult.message, flags: [MessageFlags.Ephemeral] }).catch(() => {});
+            await interaction.followUp({ content: playResult.message, flags: [MessageFlags.Ephemeral] }).catch(() => { });
           }
         } catch (e) {
           console.error('[v4.1.3] Selection timeout or error:', e);
-          interaction.editReply({ content: '선택 시간이 초과되었습니다.', embeds: [], components: [] }).catch(() => {});
-          setTimeout(() => response.delete().catch(() => {}), 3000);
+          interaction.editReply({ content: '선택 시간이 초과되었습니다.', embeds: [], components: [] }).catch(() => { });
+          setTimeout(() => response.delete().catch(() => { }), 3000);
         }
       }
     } catch (e) {
       console.error('[v4.1.3] Play command Error:', e);
       const errMsg = '❌ 재생 중 오류가 발생했습니다.';
       if (fromChannel) interaction.channel.send(errMsg);
-      else if (interaction.deferred) interaction.editReply(errMsg).catch(() => {});
-      else interaction.reply(errMsg).catch(() => {});
+      else if (interaction.deferred) interaction.editReply(errMsg).catch(() => { });
+      else interaction.reply(errMsg).catch(() => { });
     }
   },
 
