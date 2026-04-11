@@ -237,7 +237,7 @@ client.on(Events.MessageCreate, async message => {
   }
 });
 
-// UNIFIED MUSIC INTERFACE HELPER (v4.1.4)
+// UNIFIED MUSIC INTERFACE HELPER (v4.1.5)
 async function refreshMusicInterface(guildId, currentTrack = null) {
     const config = db.getGuildConfig(guildId);
     if (!config || !config.music_channel_id) return;
@@ -250,11 +250,22 @@ async function refreshMusicInterface(guildId, currentTrack = null) {
         const embeds = require('./src/utils/embeds');
         const kazagumoPlayer = player.getQueue(guildId);
         
-        // 1. Locate Messages
-        let existingDashboard = config.dashboard_msg_id ? await channel.messages.fetch(config.dashboard_msg_id).catch(() => null) : null;
-        let existingNP = config.now_playing_msg_id ? await channel.messages.fetch(config.now_playing_msg_id).catch(() => null) : null;
+        // Find existing UI message - try Dashboard first, then NP
+        let uiMessage = null;
+        if (config.dashboard_msg_id) {
+            uiMessage = await channel.messages.fetch(config.dashboard_msg_id).catch(() => null);
+        }
+        if (!uiMessage && config.now_playing_msg_id) {
+            uiMessage = await channel.messages.fetch(config.now_playing_msg_id).catch(() => null);
+        }
 
-        // 2. CASE: Song is playing -> Focus on Now Playing
+        // Clean up any extra NP message if it's different from our primary UI message
+        if (config.now_playing_msg_id && uiMessage?.id !== config.now_playing_msg_id) {
+            const extraNP = await channel.messages.fetch(config.now_playing_msg_id).catch(() => null);
+            if (extraNP) await extraNP.delete().catch(() => {});
+        }
+
+        // 1. CASE: Song is playing
         if (currentTrack) {
             const song = {
                 title: currentTrack.title,
@@ -268,31 +279,37 @@ async function refreshMusicInterface(guildId, currentTrack = null) {
             const npEmbed = embeds.createNowPlayingEmbed(song, kazagumoPlayer?.queue);
             const npControls = embeds.createPlayerControlButtons();
             
-            // Re-use or Re-create NP message
-            if (existingNP) {
-                await existingNP.edit({ embeds: [npEmbed], components: [npControls] }).catch(() => {});
+            if (uiMessage) {
+                await uiMessage.edit({ embeds: [npEmbed], components: [npControls] }).catch(async () => {
+                    // If edit fails (e.g. message deleted), send new
+                    const newMsg = await channel.send({ embeds: [npEmbed], components: [npControls] });
+                    db.setGuildConfig(guildId, channel.id, null, newMsg.id);
+                });
+                // Update DB to ensure we track it as NP message
+                db.setGuildConfig(guildId, channel.id, null, uiMessage.id);
             } else {
-                if (existingDashboard) await existingDashboard.delete().catch(() => {});
-                const newNP = await channel.send({ embeds: [npEmbed], components: [npControls] });
-                db.setGuildConfig(guildId, channel.id, null, newNP.id);
+                const newMsg = await channel.send({ embeds: [npEmbed], components: [npControls] });
+                db.setGuildConfig(guildId, channel.id, null, newMsg.id);
             }
         } 
-        // 3. CASE: Nothing playing -> Show Dashboard
+        // 2. CASE: Nothing playing -> Restore Dashboard
         else {
-            if (existingNP) await existingNP.delete().catch(() => {});
-            
             const dashboardEmbed = embeds.createDashboardEmbed(guild.name);
             const dashboardButtons = embeds.createDashboardButtons();
 
-            if (existingDashboard) {
-                await existingDashboard.edit({ embeds: [dashboardEmbed], components: dashboardButtons }).catch(() => {});
+            if (uiMessage) {
+                await uiMessage.edit({ embeds: [dashboardEmbed], components: dashboardButtons }).catch(async () => {
+                   const newMsg = await channel.send({ embeds: [dashboardEmbed], components: dashboardButtons });
+                   db.setGuildConfig(guildId, channel.id, newMsg.id, null);
+                });
+                db.setGuildConfig(guildId, channel.id, uiMessage.id, null);
             } else {
-                const newDashboard = await channel.send({ embeds: [dashboardEmbed], components: dashboardButtons });
-                db.setGuildConfig(guildId, channel.id, newDashboard.id, null);
+                const newMsg = await channel.send({ embeds: [dashboardEmbed], components: dashboardButtons });
+                db.setGuildConfig(guildId, channel.id, newMsg.id, null);
             }
         }
     } catch (e) {
-        console.error('[v4.1.4] refreshMusicInterface Error:', e);
+        console.error('[v4.1.5] refreshMusicInterface Error:', e);
     }
 }
 
