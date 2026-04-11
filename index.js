@@ -251,7 +251,12 @@ client.on(Events.InteractionCreate, async interaction => {
               ));
   
             const selectRow = new ActionRowBuilder().addComponents(select);
-            await interaction.reply({ content: '📂 어느 플레이리스트에 정보를 담을까요?', components: [selectRow], flags: [MessageFlags.Ephemeral] });
+            const selectEmbed = new EmbedBuilder()
+              .setColor('#BFA054')
+              .setTitle('📂 플레이리스트 저장')
+              .setDescription('현재 재생 중인 곡을 어느 보관함에 담을까요?\n아래 목록에서 선택해 주세요.');
+
+            await interaction.reply({ embeds: [selectEmbed], components: [selectRow], flags: [MessageFlags.Ephemeral] });
             break;
         case 'player_explore':
             const { ButtonBuilder, ButtonStyle } = require('discord.js');
@@ -262,7 +267,13 @@ client.on(Events.InteractionCreate, async interaction => {
                 new ButtonBuilder().setCustomId('btn_recent_list').setLabel('✨ 최근곡').setStyle(ButtonStyle.Primary),
                 new ButtonBuilder().setCustomId('btn_favorites').setLabel('❤️ 즐겨찾기').setStyle(ButtonStyle.Danger)
               );
-            await interaction.reply({ content: '🔍 **곡 검색/추가 메뉴**\n이 채널에 직접 곡 제목을 입력하거나, 아래 퀵 메뉴를 이용하세요.', components: [exploreRow], flags: [MessageFlags.Ephemeral] });
+
+            const exploreEmbed = new EmbedBuilder()
+              .setColor('#BFA054')
+              .setTitle('🔍 곡 검색 및 추가')
+              .setDescription('이 채널에 바로 **곡 제목**이나 **URL**을 입력하시거나,\n아래 **퀵 버튼**을 눌러 간편하게 추가해 보세요.');
+
+            await interaction.reply({ embeds: [exploreEmbed], components: [exploreRow], flags: [MessageFlags.Ephemeral] });
             break;
       }
     } catch (error) {

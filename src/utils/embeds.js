@@ -124,7 +124,7 @@ module.exports = {
     }).join('\n');
 
     return new EmbedBuilder()
-      .setColor('#2C2F33')
+      .setColor('#1A1A1B')
       .setTitle(`🔍 『 ${title} 』`)
       .setDescription(description)
       .setThumbnail(results[0].thumbnails ? results[0].thumbnails[0].url : (results[0].thumbnail || null))
