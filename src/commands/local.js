@@ -37,16 +37,25 @@ module.exports = {
       isLocal: true
     };
 
-    let queue = musicPlayer.getQueue(interaction.guildId);
-    if (!queue) {
-      await musicPlayer.join(member.voice.channel, interaction.channel);
-      queue = musicPlayer.getQueue(interaction.guildId);
+    let player = musicPlayer.getQueue(interaction.guildId);
+    if (!player) {
+        player = await musicPlayer.manager.createPlayer({
+            guildId: interaction.guildId,
+            voiceId: member.voice.channel.id,
+            textId: interaction.channel.id,
+            deaf: true
+        });
     }
 
-    queue.songs.push(song);
+    const result = await musicPlayer.manager.search(filePath, { requester: interaction.user });
+    if (!result || result.tracks.length === 0) {
+        return interaction.editReply(`❌ 파일을 재생할 수 없습니다: ${filename} (Lavalink에서 지원하지 않거나 파일이 손상되었습니다)`);
+    }
 
-    if (queue.songs.length === 1 && !queue.playing) {
-      musicPlayer.play(interaction.guildId, song);
+    player.queue.add(result.tracks[0]);
+
+    if (!player.playing && !player.paused) {
+      await player.play();
       interaction.editReply(`🎵 **${filename}** 재생을 시작합니다.`);
     } else {
       interaction.editReply(`🎵 **${filename}** 곡이 대기열에 추가되었습니다.`);

@@ -162,6 +162,19 @@ client.on(Events.InteractionCreate, async interaction => {
           queue.destroy();
           await interaction.reply({ content: '⏹️ 정지됨', flags: [MessageFlags.Ephemeral] });
           break;
+        case 'player_repeat':
+          const loopMode = queue.loop === 'track' ? 'none' : 'track';
+          queue.setLoop(loopMode);
+          await interaction.reply({ content: `🔁 반복 재생: ${loopMode === 'track' ? '현재 곡' : '꺼짐'}`, flags: [MessageFlags.Ephemeral] });
+          break;
+        case 'player_queue':
+          const tracks = queue.queue.map((t, i) => `${i + 1}. ${t.title}`).join('\n') || '대기열이 비어있습니다.';
+          const qEmbed = new EmbedBuilder()
+            .setTitle('📜 현재 대기열')
+            .setColor('#5865F2')
+            .setDescription(tracks.length > 2000 ? tracks.substring(0, 1997) + '...' : tracks);
+          await interaction.reply({ embeds: [qEmbed], flags: [MessageFlags.Ephemeral] });
+          break;
       }
     } catch (error) {
       console.error(error);
@@ -177,14 +190,11 @@ client.on(Events.MessageCreate, async message => {
   const config = db.getGuildConfig(message.guildId);
   if (config && message.channelId === config.music_channel_id) {
     const attachment = message.attachments.first();
-    if (attachment) console.log(`[v4.1.2] Attachment detected in music channel: ${attachment.name}`);
     
-    // AUTO-DELETE USER MESSAGE (Sticky Dashboard - v4.1.2)
+    // AUTO-DELETE USER MESSAGE (Sticky Dashboard)
     setTimeout(() => {
         message.delete().catch(() => {});
     }, 1000);
-
-    let lastResponse = null;
 
     const interactionPlaceholder = { 
         id: message.id,
@@ -204,7 +214,7 @@ client.on(Events.MessageCreate, async message => {
             return msg;
         },
         editReply: async (options) => {
-            lastResponse = await message.channel.send(options);
+            const lastResponse = await message.channel.send(options);
             setTimeout(() => lastResponse.delete().catch(() => {}), 3000);
             return lastResponse;
         },
@@ -220,15 +230,14 @@ client.on(Events.MessageCreate, async message => {
         await playCmd.execute(interactionPlaceholder, true);
         // Unified UI Refresh (v4.1.3)
         setTimeout(() => {
-            const player = client.player.kazagumo.players.get(message.guild.id);
-            refreshMusicInterface(message.guild.id, player ? player.queue.current : null);
+            const currentQueue = player.getQueue(message.guild.id);
+            refreshMusicInterface(message.guild.id, currentQueue ? currentQueue.queue.current : null);
         }, 3000);
     }
   }
 });
 
-// UNIFIED MUSIC INTERFACE HELPER (v4.1.3)
-// Strictly maintains [Dashboard] above [Now Playing] (Bottom)
+// UNIFIED MUSIC INTERFACE HELPER (v4.1.4)
 async function refreshMusicInterface(guildId, currentTrack = null) {
     const config = db.getGuildConfig(guildId);
     if (!config || !config.music_channel_id) return;
@@ -239,16 +248,13 @@ async function refreshMusicInterface(guildId, currentTrack = null) {
 
     try {
         const embeds = require('./src/utils/embeds');
+        const kazagumoPlayer = player.getQueue(guildId);
         
-        // 1. Prepare Content
-        const dashboardEmbed = embeds.createDashboardEmbed(guild.name);
-        const dashboardButtons = embeds.createDashboardButtons();
-
-        // 2. Locate Messages
+        // 1. Locate Messages
         let existingDashboard = config.dashboard_msg_id ? await channel.messages.fetch(config.dashboard_msg_id).catch(() => null) : null;
         let existingNP = config.now_playing_msg_id ? await channel.messages.fetch(config.now_playing_msg_id).catch(() => null) : null;
 
-        // 3. CASE: Song is playing -> Ensure Order [Dashboard] -> [NP] (Bottom)
+        // 2. CASE: Song is playing -> Focus on Now Playing
         if (currentTrack) {
             const song = {
                 title: currentTrack.title,
@@ -258,38 +264,35 @@ async function refreshMusicInterface(guildId, currentTrack = null) {
                 author: currentTrack.author,
                 requester: currentTrack.requester
             };
-            const npEmbed = embeds.createNowPlayingEmbed(song);
-            const npControls = embeds.createPlayerControlButtons();
 
-            // Check if they are already in order at the absolute bottom
-            // Simple heuristic: if NP exists and was sent after Dashboard, we try to Edit.
-            if (existingDashboard && existingNP && existingNP.createdTimestamp > existingDashboard.createdTimestamp) {
-                await existingDashboard.edit({ embeds: [dashboardEmbed], components: dashboardButtons }).catch(() => {});
+            const npEmbed = embeds.createNowPlayingEmbed(song, kazagumoPlayer?.queue);
+            const npControls = embeds.createPlayerControlButtons();
+            
+            // Re-use or Re-create NP message
+            if (existingNP) {
                 await existingNP.edit({ embeds: [npEmbed], components: [npControls] }).catch(() => {});
             } else {
-                // Nuclear reset for perfect order
                 if (existingDashboard) await existingDashboard.delete().catch(() => {});
-                if (existingNP) await existingNP.delete().catch(() => {});
-                
-                const newDashboard = await channel.send({ embeds: [dashboardEmbed], components: dashboardButtons });
                 const newNP = await channel.send({ embeds: [npEmbed], components: [npControls] });
-                
-                db.setGuildConfig(guildId, channel.id, newDashboard.id, newNP.id);
+                db.setGuildConfig(guildId, channel.id, null, newNP.id);
             }
         } 
-        // 4. CASE: Nothing playing -> Dashboard only at Bottom
+        // 3. CASE: Nothing playing -> Show Dashboard
         else {
-            if (existingNP) {
-                await existingNP.delete().catch(() => {});
-                db.updateNowPlayingId(guildId, null);
+            if (existingNP) await existingNP.delete().catch(() => {});
+            
+            const dashboardEmbed = embeds.createDashboardEmbed(guild.name);
+            const dashboardButtons = embeds.createDashboardButtons();
+
+            if (existingDashboard) {
+                await existingDashboard.edit({ embeds: [dashboardEmbed], components: dashboardButtons }).catch(() => {});
+            } else {
+                const newDashboard = await channel.send({ embeds: [dashboardEmbed], components: dashboardButtons });
+                db.setGuildConfig(guildId, channel.id, newDashboard.id, null);
             }
-            // Move Dashboard to bottom if it's not already
-            if (existingDashboard) await existingDashboard.delete().catch(() => {});
-            const newDashboard = await channel.send({ embeds: [dashboardEmbed], components: dashboardButtons });
-            db.setGuildConfig(guildId, channel.id, newDashboard.id, null);
         }
     } catch (e) {
-        console.error('[v4.1.2] refreshMusicInterface Error:', e);
+        console.error('[v4.1.4] refreshMusicInterface Error:', e);
     }
 }
 

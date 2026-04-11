@@ -6,8 +6,8 @@ module.exports = {
   createDashboardEmbed: (guildName) => {
     return new EmbedBuilder()
       .setColor('#5865F2')
-      .setTitle(`${guildName} - 음악채널`)
-      .setThumbnail('https://i.imgur.com/your-thumbnail.png') // Placeholder, change to bot avatar or local icon
+      .setTitle(`SMP - 음악채널`)
+      .setThumbnail('https://i.imgur.com/vHdfyC7.png') // Default logo
       .setDescription(`
 **┃ 99.9%의 업타임 보장 🚀**
 업데이트와 재시작은 이용자가 가장 적은 시간에 진행되며, 음질과 성능 최적화를 위해 매일 꾸준히 관리합니다.
@@ -22,11 +22,11 @@ module.exports = {
       .setTimestamp();
   },
 
-  createNowPlayingEmbed: (track) => {
-    return new EmbedBuilder()
+  createNowPlayingEmbed: (track, queue = null) => {
+    const embed = new EmbedBuilder()
       .setColor('#2F3136')
       .setTitle('『 현재 재생 중 』')
-      .setThumbnail(track.thumbnail)
+      .setImage(track.thumbnail) // Large thumbnail as requested
       .setDescription(`
 **[${track.title}](${track.url})**
 
@@ -34,9 +34,17 @@ module.exports = {
 
 **┃ 👤 요청자:** <@${track.requester?.id || 'Unknown'}>
 **┃ 🎙️ 아티스트:** \`${track.author || 'Youtube'}\`
-      `)
-      .setFooter({ text: '💡 버튼을 눌러 플레이어를 제어하세요.' })
+      `);
+
+    if (queue && queue.length > 0) {
+        const nextUp = queue.slice(0, 3).map((t, i) => `\`${i + 1}.\` ${t.title.substring(0, 40)}...`).join('\n');
+        embed.addFields({ name: '📜 대기열 (다음 곡)', value: nextUp || '없음' });
+    }
+
+    embed.setFooter({ text: '💡 버튼을 눌러 플레이어를 제어하세요.' })
       .setTimestamp();
+    
+    return embed;
   },
 
   createDashboardButtons: () => {

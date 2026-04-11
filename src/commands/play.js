@@ -55,27 +55,34 @@ module.exports = {
                 thumbnail: 'https://i.imgur.com/vHdfyC7.png',
                 durationRaw: '파일 재생',
                 author: member.displayName,
-                isLocal: false
+                isLocal: false,
+                requester: interaction.user
             };
         } else {
             console.log(`[v4.1.3] Fetching video info for: ${query}`);
-            const videoInfo = await play.video_info(query).catch(err => {
-              console.error('[v4.1.3] Video Info Error:', err.message);
-              return null;
-            });
+            let videoInfo = null;
+            try {
+                const result = await musicPlayer.manager.search(query);
+                if (result && result.tracks && result.tracks.length > 0) {
+                    videoInfo = result.tracks[0];
+                }
+            } catch (err) {
+                console.error('[v4.1.3] Lavalink Video Info Error:', err.message);
+            }
 
             if (!videoInfo) {
-              const errMsg = '❌ 유효하지 않은 주소거나 유튜브 로드 실패.';
+              const errMsg = '❌ 유효하지 않은 주소거나 로드 실패 (Lavalink).';
               return fromChannel ? interaction.channel.send(errMsg) : interaction.editReply(errMsg);
             }
 
             song = {
-                title: videoInfo.video_details.title,
-                url: videoInfo.video_details.url,
-                thumbnail: videoInfo.video_details.thumbnails[0].url,
-                durationRaw: videoInfo.video_details.durationRaw,
-                author: videoInfo.video_details.channel.name,
-                isLocal: false
+                title: videoInfo.title,
+                url: videoInfo.uri,
+                thumbnail: videoInfo.thumbnail || 'https://i.imgur.com/vHdfyC7.png',
+                durationRaw: videoInfo.isStream ? 'LIVE' : new Date(videoInfo.length || 0).toISOString().substr(11, 8),
+                author: videoInfo.author || 'Youtube',
+                isLocal: false,
+                requester: interaction.user
             };
         }
         const playResult = await this.addAndPlay(interaction, song, fromChannel);
@@ -85,7 +92,22 @@ module.exports = {
         }
       } else {
         console.log(`[v4.1.2] Searching for: ${query}`);
-        const searchResults = await play.search(query, { limit: 10 });
+        let searchResults = [];
+        try {
+            const result = await musicPlayer.manager.search(query);
+            if (result && result.tracks) {
+                searchResults = result.tracks.slice(0, 10).map(t => ({
+                    title: t.title,
+                    url: t.uri,
+                    durationRaw: t.isStream ? 'LIVE' : new Date(t.length || 0).toISOString().substr(11, 8),
+                    channel: { name: t.author || 'Youtube' },
+                    thumbnails: [{ url: t.thumbnail || 'https://i.imgur.com/vHdfyC7.png' }]
+                }));
+            }
+        } catch (searchError) {
+            console.error('[v4.1.2] Lavalink Search Error:', searchError);
+        }
+        
         if (searchResults.length === 0) {
             const msg = '검색 결과가 없습니다.';
             return fromChannel ? interaction.channel.send(msg) : interaction.editReply(msg);
@@ -119,7 +141,8 @@ module.exports = {
             thumbnail: selectedVideo.thumbnails[0].url,
             durationRaw: selectedVideo.durationRaw,
             author: selectedVideo.channel ? selectedVideo.channel.name : '알 수 없음',
-            isLocal: false
+            isLocal: false,
+            requester: interaction.user
           };
           await confirmation.update({ content: `✅ **${song.title}** 선택됨! (v4.1.3)`, embeds: [], components: [] });
           

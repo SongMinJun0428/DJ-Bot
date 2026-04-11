@@ -44,12 +44,12 @@ module.exports = {
       }
     } else if (subcommand === 'add') {
       const name = interaction.options.getString('name');
-      const queue = musicPlayer.getQueue(interaction.guildId);
-      if (!queue || queue.songs.length === 0) {
+      const player = musicPlayer.getQueue(interaction.guildId);
+      if (!player || !player.queue.current) {
         return interaction.reply({ content: '현재 재생 중인 곡이 없습니다.', flags: [MessageFlags.Ephemeral] });
       }
 
-      const song = queue.songs[0];
+      const song = player.queue.current;
       const playlists = db.getPlaylists(userId);
       const playlist = playlists.find(p => p.name === name);
 
@@ -57,7 +57,7 @@ module.exports = {
         return interaction.reply({ content: `❌ 플레이리스트 **${name}**을(를) 찾을 수 없습니다.`, flags: [MessageFlags.Ephemeral] });
       }
 
-      db.addSongToPlaylist(playlist.id, song.title, song.url);
+      db.addSongToPlaylist(playlist.id, song.title, song.uri);
       await interaction.reply({ content: `✅ **${song.title}** 곡이 **${name}** 플레이리스트에 추가되었습니다.` });
     } else if (subcommand === 'play') {
       const name = interaction.options.getString('name');
@@ -77,28 +77,26 @@ module.exports = {
         return interaction.reply({ content: '먼저 음성 채널에 입장해주세요!', flags: [MessageFlags.Ephemeral] });
       }
 
-      let queue = musicPlayer.getQueue(interaction.guildId);
-      if (!queue) {
-        await musicPlayer.join(interaction.member.voice.channel, interaction.channel);
-        queue = musicPlayer.getQueue(interaction.guildId);
+      let player = musicPlayer.getQueue(interaction.guildId);
+      if (!player) {
+          player = await musicPlayer.manager.createPlayer({
+              guildId: interaction.guildId,
+              voiceId: interaction.member.voice.channel.id,
+              textId: interaction.channel.id,
+              deaf: true
+          });
       }
 
-      songs.forEach(s => {
-        queue.songs.push({
-          title: s.title,
-          url: s.url,
-          thumbnail: 'https://i.imgur.com/your-thumbnail.png',
-          durationRaw: 'Playlist',
-          author: 'User Playlist',
-          isLocal: false
-        });
-      });
-
-      if (!queue.playing) {
-        musicPlayer.play(interaction.guildId, queue.songs[0]);
+      for (const s of songs) {
+          const result = await musicPlayer.manager.search(s.url, { requester: interaction.user });
+          if (result && result.tracks.length > 0) {
+              player.queue.add(result.tracks[0]);
+          }
       }
 
-      await interaction.reply({ content: `✅ **${name}** 플레이리스트의 곡 ${songs.length}개를 대기열에 추가했습니다.` });
+      if (!player.playing && !player.paused) await player.play();
+
+      await interaction.reply({ content: `✅ **${name}** 플레이리스트의 곡 ${songs.length}개를 대기열에 추가하고 재생을 시작합니다.` });
     } else if (subcommand === 'list') {
       const playlists = db.getPlaylists(userId);
       if (playlists.length === 0) {
