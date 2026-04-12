@@ -4,34 +4,34 @@ const embeds = require('../utils/embeds');
 
 const Nodes = [
   {
-    name: 'Lavalink.lexis.host',
+    name: 'Lexis Host (Stable)',
     url: 'lavalink.lexis.host:443',
     auth: 'lexishost',
     secure: true
   },
   {
-    name: 'AjieDev SSL',
+    name: 'Lava Link (Permissive)',
+    url: 'lava.link:443',
+    auth: 'anything',
+    secure: true
+  },
+  {
+    name: 'Serenetia SSL',
     url: 'lavalinkv4.serenetia.com:443',
     auth: 'https://seretia.link/discord',
     secure: true
   },
   {
-    name: 'AjieDev No-SSL',
-    url: 'lava-v4.ajieblogs.eu.org:80',
-    auth: 'https://seretia.link/discord',
-    secure: false
+    name: 'Oops WTF (Backup)',
+    url: 'lavalink.oops.wtf:443',
+    auth: 'www.oops.wtf',
+    secure: true
   },
   {
     name: 'DivaHost',
     url: 'lavalink.divahost.net:60002',
     auth: 'divahostv4',
     secure: false
-  },
-  {
-    name: 'Backup-Node',
-    url: 'lavalink.oops.wtf:443',
-    auth: 'www.oops.wtf',
-    secure: true
   }
 ];
 

@@ -55,9 +55,14 @@ class MusicPlayer {
       }
 
       const db = require('../db/database');
-      const result = await this.manager.search(song.url || song.title, { requester: song.requester });
+      const searchUrl = song.url || song.title;
+      const isDirectLink = searchUrl.startsWith('http');
+      const result = await this.manager.search(searchUrl, { requester: song.requester });
       
       if (!result || !result.tracks.length) {
+          if (isDirectLink) {
+              return textChannel.send('❌ **파일 재생 실패:** 음악 서버의 보안 정책으로 인해 직접 링크 재생이 차단되었습니다. 다른 서버를 시도 중이거나 파일 형식(MP3 등)을 확인해 주세요.');
+          }
           return textChannel.send('❌ 검색 결과가 없습니다.');
       }
 
