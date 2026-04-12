@@ -146,8 +146,13 @@ module.exports = {
   },
 
   setAutoplay: (guildId, enabled) => {
-    const stmt = db.prepare('UPDATE guild_config SET autoplay = ? WHERE guild_id = ?');
-    return stmt.run(enabled ? 1 : 0, guildId);
+    // Upsert logic: If row exists, update autoplay. If not, insert with default values but specific autoplay.
+    const stmt = db.prepare(`
+      INSERT INTO guild_config (guild_id, autoplay) 
+      VALUES (?, ?) 
+      ON CONFLICT(guild_id) DO UPDATE SET autoplay = excluded.autoplay
+    `);
+    return stmt.run(guildId, enabled ? 1 : 0);
   },
 
   getGuildConfig: (guildId) => {

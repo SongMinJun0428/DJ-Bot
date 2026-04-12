@@ -381,18 +381,24 @@ client.on(Events.InteractionCreate, async interaction => {
             });
         }
 
+        // High-performance batch loading
+        console.log(`[v4.2.0 PLAYLIST] Starting batch load for ${songsToPlay.length} songs`);
+        
+        let loadedCount = 0;
         for (const song of songsToPlay) {
             try {
-                // Use the robust player.play method which handles engine readiness and search
-                await player.play(interaction.guildId, { 
-                    title: song.title, 
-                    url: song.url, 
-                    requester: interaction.user 
-                }, interaction.member.voice.channel, interaction.channel);
+                const result = await player.manager.search(song.url || song.title, { requester: interaction.user });
+                if (result && result.tracks.length > 0) {
+                    queue.queue.add(result.tracks[0]);
+                    loadedCount++;
+                }
             } catch (err) {
-                console.error(`[v4.2.0] Playlist Load Error (${song.title}):`, err.message);
+                console.error(`[v4.2.0 PLAYLIST] Failed to load: ${song.title}`, err.message);
             }
         }
+
+        console.log(`[v4.2.0 PLAYLIST] Load complete. Added ${loadedCount}/${songsToPlay.length} tracks.`);
+        if (!queue.playing && !queue.paused) await queue.play();
         
         // Unified UI Refresh (v4.1.3)
         setTimeout(() => {
@@ -491,6 +497,7 @@ async function refreshMusicInterface(guildId, currentTrack = null) {
         url: currentTrack.uri,
         thumbnail: currentTrack.thumbnail || 'https://i.imgur.com/vHdfyC7.png',
         durationRaw: currentTrack.isStream ? 'LIVE' : new Date(currentTrack.length).toISOString().substr(11, 8),
+        length: currentTrack.length, // Ensure length is passed for time calculation
         author: currentTrack.author,
         requester: currentTrack.requester
       };
