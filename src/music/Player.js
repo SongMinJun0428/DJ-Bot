@@ -19,7 +19,7 @@ class MusicPlayer {
   async play(guildId, song, voiceChannel, textChannel) {
     try {
       if (!this.lavalink || !this.lavalink.shoukaku) {
-        return textChannel.send('⏳ 오디오 엔진 초기화 중입니다. 10초 뒤에 다시 시도해 주세요. (v4.1.3)');
+        return textChannel.send('⏳ 오디오 엔진 초기화 중입니다. 잠시만 기다려 주세요. (v4.2.1)');
       }
 
       // Check for node readiness
@@ -27,10 +27,10 @@ class MusicPlayer {
       const nodesArray = nodesMap ? Array.from(nodesMap.values()) : [];
       const readyNodes = nodesArray.filter(n => n.state === 1); 
       
-      console.log(`[v4.1.3] Audio attempt for guild ${guildId}. Found ${nodesArray.length} potential nodes, Ready: ${readyNodes.length}`);
+      console.log(`[v4.2.1] Audio attempt for guild ${guildId}. Found ${nodesArray.length} potential nodes, Ready: ${readyNodes.length}`);
 
       if (readyNodes.length === 0) {
-        let msg = `📡 **오디오 서버 연결 시도 중...** (상태: ${readyNodes.length}/${nodesArray.length} 연결됨) (v4.1.4)`;
+        let msg = `📡 **오디오 서버 연결 시도 중...** (상태: ${readyNodes.length}/${nodesArray.length} 연결됨) (v4.2.1)`;
         if (nodesArray.length === 0) {
             msg += '\n⚠️ 서버 설정 오류가 발견되었습니다. 개발자에게 문의해 주세요.';
         } else {
@@ -51,7 +51,7 @@ class MusicPlayer {
           deaf: true,
           volume: 50
         });
-        console.log(`[v3.1.14] Created new Lavalink player for guild ${guildId}`);
+        console.log(`[v4.2.1] Created new Lavalink player for guild ${guildId}`);
       }
 
       const db = require('../db/database');
@@ -80,13 +80,13 @@ class MusicPlayer {
       if (!player.playing && !player.paused) await player.play();
 
     } catch (e) {
-      console.error('[v4.0.1] Play Error:', e);
+      console.error('[v4.2.1] Play Error:', e);
       textChannel.send('❌ 재생 중 오류가 발생했습니다. (Lavalink 노드 서버 확인 요망)');
     }
   }
 
   async join(voiceChannel, textChannel) {
-    console.log(`[v4.0.1] Preparing Lavalink join for ${voiceChannel.name}`);
+    console.log(`[v4.2.1] Preparing Lavalink join for ${voiceChannel.name}`);
     return true;
   }
 }

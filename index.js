@@ -34,16 +34,16 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 client.once(Events.ClientReady, async c => {
   console.log('====================================');
-  console.log('--- [v4.1.3 BOT STARTUP DIAGNOSTIC] ---');
+  console.log('--- [v4.2.1 BOT STARTUP DIAGNOSTIC] ---');
   console.log(`Ready! Logged in as ${c.user.tag}`);
 
   // Initialize Lavalink Audio Engine (v4.1.3)
-  console.log('[v4.1.3] Calling player.init()...');
+  console.log('[v4.2.1] Initializing Audio Engine...');
   try {
     player.init(client);
-    console.log('[v4.1.3] player.init() call complete.');
+    console.log('[v4.2.1] Audio Engine Initialization check complete.');
   } catch (err) {
-    console.error('❌ [v4.1.3] FATAL: player.init() failed!', err);
+    console.error('❌ [v4.2.1] FATAL: player.init() failed!', err);
   }
 
   // CRITICAL INTENT CHECK
@@ -400,7 +400,7 @@ client.on(Events.InteractionCreate, async interaction => {
         console.log(`[v4.2.0 PLAYLIST] Load complete. Added ${loadedCount}/${songsToPlay.length} tracks.`);
         if (!queue.playing && !queue.paused) await queue.play();
         
-        // Unified UI Refresh (v4.1.3)
+        // Unified UI Refresh (v4.2.1)
         setTimeout(() => {
             client.refreshMusicInterface(interaction.guildId, queue.queue.current);
         }, 3000);
@@ -453,7 +453,7 @@ client.on(Events.MessageCreate, async message => {
     const playCmd = client.commands.get('play');
     if (playCmd) {
       await playCmd.execute(interactionPlaceholder, true);
-      // Unified UI Refresh (v4.1.3)
+      // Unified UI Refresh (v4.2.1)
       setTimeout(() => {
         const currentQueue = player.getQueue(message.guild.id);
         refreshMusicInterface(message.guild.id, currentQueue ? currentQueue.queue.current : null);
@@ -462,7 +462,7 @@ client.on(Events.MessageCreate, async message => {
   }
 });
 
-// UNIFIED MUSIC INTERFACE HELPER (v4.1.5)
+// UNIFIED MUSIC INTERFACE HELPER (v4.2.1)
 async function refreshMusicInterface(guildId, currentTrack = null) {
   const config = db.getGuildConfig(guildId);
   if (!config || !config.music_channel_id) return;
@@ -535,7 +535,7 @@ async function refreshMusicInterface(guildId, currentTrack = null) {
       }
     }
   } catch (e) {
-    console.error('[v4.1.5] refreshMusicInterface Error:', e);
+    console.error('[v4.2.1] refreshMusicInterface Error:', e);
   }
 }
 

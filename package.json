@@ -1,6 +1,6 @@
 {
   "name": "dj-bot",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "description": "Premium Discord DJ Bot - Enjoying with music",
   "main": "index.js",
   "scripts": {
